@@ -100,6 +100,7 @@ header.top p { margin: 2px 0 0; color: var(--chalk-dim); font-size: 13px; }
 .review { text-align: left; display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .review li { background: rgba(0,0,0,.18); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
 .review li b { color: var(--ok); }
+.review li small { display: block; color: var(--chalk-dim); font-size: 13px; margin-top: 2px; }
 .btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .btn { font: inherit; font-weight: 700; cursor: pointer; border-radius: 999px; padding: 10px 22px; border: 2px solid var(--chalk); background: transparent; color: var(--chalk); }
 .btn.main { background: var(--gold); border-color: var(--gold); color: #23302a; }
@@ -169,6 +170,7 @@ function numQ(unit, q, ans, near) {
   while (set.size < 4) { set.add(ans + (k % 2 ? k : -k)); k++; }
   return { unit, q, ans: sgn(ans), opts: shuffle([...set]).map(sgn) };
 }
+const withEx = (q, ex) => (q.ex = ex, q);
 // Pool answers: wrong choices come from other entries of the same list.
 function poolQ(unit, q, ans, pool) {
   const set = new Set([ans]);
@@ -177,16 +179,16 @@ function poolQ(unit, q, ans, pool) {
 }
 
 const MATH = [
-  () => { const a = rnd(19) - 9, b = rnd(19) - 9; return numQ("正負の数", par(a) + " ＋ " + par(b) + " ＝ ？", a + b, [a - b, b - a, -(a + b)]); },
-  () => { const a = rnd(19) - 9, b = rnd(19) - 9; return numQ("正負の数", par(a) + " − " + par(b) + " ＝ ？", a - b, [a + b, b - a, -a - b]); },
-  () => { const a = rnd(17) - 8 || 3, b = rnd(17) - 8 || -4; return numQ("正負の数", par(a) + " × " + par(b) + " ＝ ？", a * b, [-a * b, a + b, a * b + (a > 0 ? 1 : -1)]); },
-  () => { const a = 2 + rnd(5), s = pick([-1, 1]); return numQ("累乗", (s < 0 ? "−" : "") + a + "² ＝ ？", s * a * a, [-s * a * a, s * 2 * a, s * (a * a + a)]); },
-  () => { const a = 2 + rnd(7), b = 1 + rnd(8); const x = rnd(11) - 5, c = a * x + b; return numQ("一次方程式", a + "x ＋ " + b + " ＝ " + sgn(c) + "　x ＝ ？", x, [-x, x + 1, (c + b) / a]); },
-  () => { const a = 2 + rnd(6), b = 1 + rnd(9); return poolQ("文字式", a + "(x ＋ " + b + ") を展開すると？", a + "x＋" + a * b, [a + "x＋" + b, "x＋" + a * b, a + "x＋" + (a + b), (a + b) + "x"]); },
-  () => { const a = 1 + rnd(8), b = 1 + rnd(8); return poolQ("文字式", a + "x ＋ " + b + "x ＝ ？", (a + b) + "x", [(a * b) + "x", (a + b) + "x²", (a + b) + "", Math.abs(a - b) + "x"]); },
-  () => { const n = 2 + rnd(12); return numQ("平方根", "√" + n * n + " ＝ ？", n, [n * 2, n + 1, n - 1, Math.round(n * n / 2)]); },
-  () => { const x = 2 + rnd(5), k = 2 + rnd(5); return numQ("比例", "y は x に比例し、x＝" + x + " のとき y＝" + k * x + "。比例定数は？", k, [k * x, x, k + 1]); },
-  () => { const n = pick([5, 6, 8, 9, 10, 12]); return numQ("図形", "正" + n + "角形の内角の和は何度？", 180 * (n - 2), [180 * n, 180 * (n - 1), 360]); }
+  () => { const a = rnd(19) - 9, b = rnd(19) - 9; return withEx(numQ("正負の数", par(a) + " ＋ " + par(b) + " ＝ ？", a + b, [a - b, b - a, -(a + b)]), (a * b >= 0 ? "同じ符号どうしは、絶対値をたして、その符号をつけます。" : "ちがう符号どうしは、絶対値の大きい方から小さい方をひいて、絶対値が大きい方の符号をつけます。")); },
+  () => { const a = rnd(19) - 9, b = rnd(19) - 9; return withEx(numQ("正負の数", par(a) + " − " + par(b) + " ＝ ？", a - b, [a + b, b - a, -a - b]), "ひく数の符号を変えて、たし算にします。" + par(a) + " ＋ " + par(-b) + " ＝ " + sgn(a - b)); },
+  () => { const a = rnd(17) - 8 || 3, b = rnd(17) - 8 || -4; return withEx(numQ("正負の数", par(a) + " × " + par(b) + " ＝ ？", a * b, [-a * b, a + b, a * b + (a > 0 ? 1 : -1)]), "かけ算は、同じ符号なら＋、ちがう符号なら−。" + Math.abs(a) + "×" + Math.abs(b) + "＝" + Math.abs(a * b)); },
+  () => { const a = 2 + rnd(5), s = pick([-1, 1]); return withEx(numQ("累乗", (s < 0 ? "−" : "") + a + "² ＝ ？", s * a * a, [-s * a * a, s * 2 * a, s * (a * a + a)]), (s < 0 ? "−" + a + "² は −(" + a + "×" + a + ")。−は計算のあとにつけます。" : a + "² ＝ " + a + "×" + a + "（" + a + "×2 ではありません）")); },
+  () => { const a = 2 + rnd(7), b = 1 + rnd(8); const x = rnd(11) - 5, c = a * x + b; return withEx(numQ("一次方程式", a + "x ＋ " + b + " ＝ " + sgn(c) + "　x ＝ ？", x, [-x, x + 1, (c + b) / a]), "+" + b + " を移項すると " + a + "x ＝ " + sgn(c) + " − " + b + " ＝ " + sgn(c - b) + "。両辺を " + a + " でわって x ＝ " + sgn(x)); },
+  () => { const a = 2 + rnd(6), b = 1 + rnd(9); return withEx(poolQ("文字式", a + "(x ＋ " + b + ") を展開すると？", a + "x＋" + a * b, [a + "x＋" + b, "x＋" + a * b, a + "x＋" + (a + b), (a + b) + "x"]), "分配法則：" + a + "×x と " + a + "×" + b + " の両方にかけます。"); },
+  () => { const a = 1 + rnd(8), b = 1 + rnd(8); return withEx(poolQ("文字式", a + "x ＋ " + b + "x ＝ ？", (a + b) + "x", [(a * b) + "x", (a + b) + "x²", (a + b) + "", Math.abs(a - b) + "x"]), "x の係数どうしをたします。" + a + "＋" + b + "＝" + (a + b) + "。x² にはなりません。"); },
+  () => { const n = 2 + rnd(12); return withEx(numQ("平方根", "√" + n * n + " ＝ ？", n, [n * 2, n + 1, n - 1, Math.round(n * n / 2)]), n + "×" + n + "＝" + n * n + " なので、√" + n * n + "＝" + n); },
+  () => { const x = 2 + rnd(5), k = 2 + rnd(5); return withEx(numQ("比例", "y は x に比例し、x＝" + x + " のとき y＝" + k * x + "。比例定数は？", k, [k * x, x, k + 1]), "y＝ax の a が比例定数。a＝y÷x＝" + k * x + "÷" + x + "＝" + k); },
+  () => { const n = pick([5, 6, 8, 9, 10, 12]); return withEx(numQ("図形", "正" + n + "角形の内角の和は何度？", 180 * (n - 2), [180 * n, 180 * (n - 1), 360]), "n角形の内角の和は 180°×(n−2)。180×" + (n - 2) + "＝" + 180 * (n - 2) + "°"); }
 ];
 
 const VERBS = [["go","went"],["come","came"],["see","saw"],["eat","ate"],["take","took"],["make","made"],["get","got"],["give","gave"],["know","knew"],["think","thought"],["buy","bought"],["bring","brought"],["teach","taught"],["catch","caught"],["write","wrote"],["read","read"],["run","ran"],["swim","swam"],["sing","sang"],["speak","spoke"],["tell","told"],["say","said"],["find","found"],["leave","left"],["feel","felt"],["meet","met"],["sit","sat"],["stand","stood"],["begin","began"],["drink","drank"],["have","had"],["do","did"],["send","sent"],["lose","lost"],["sleep","slept"],["build","built"],["break","broke"],["choose","chose"],["fly","flew"],["draw","drew"]];
@@ -194,33 +196,33 @@ const PP = [["go","gone"],["come","come"],["see","seen"],["eat","eaten"],["take"
 const WORDS = [["library","図書館"],["hospital","病院"],["station","駅"],["museum","博物館"],["weather","天気"],["season","季節"],["country","国"],["language","言語"],["future","未来"],["history","歴史"],["science","理科"],["question","質問"],["answer","答え"],["important","大切な"],["difficult","難しい"],["famous","有名な"],["interesting","おもしろい"],["popular","人気のある"],["beautiful","美しい"],["useful","役に立つ"],["borrow","借りる"],["remember","覚えている"],["forget","忘れる"],["decide","決める"],["arrive","着く"]];
 const COMP = [["big","bigger"],["tall","taller"],["long","longer"],["old","older"],["hot","hotter"],["easy","easier"],["busy","busier"],["large","larger"],["good","better"],["many","more"],["bad","worse"],["fast","faster"]];
 const ENG = [
-  () => { const [v, p] = pick(VERBS); const wrong = [v + "ed", v.replace(/e$/, "") + "ed", ...VERBS.map(x => x[1])].filter(x => x !== p); return poolQ("不規則動詞", v + " の過去形は？", p, [...new Set(wrong)]); },
-  () => { const [v, p] = pick(PP); const past = VERBS.find(x => x[0] === v); return poolQ("過去分詞", v + " の過去分詞は？", p, [past ? past[1] : v + "ed", v + "ed", v + "en", ...PP.map(x => x[1])].filter(x => x !== p)); },
-  () => { const [e, j] = pick(WORDS); return poolQ("英単語", e + " の意味は？", j, WORDS.map(x => x[1])); },
-  () => { const [e, j] = pick(WORDS); return poolQ("英単語", "「" + j + "」を英語で？", e, WORDS.map(x => x[0])); },
-  () => { const [a, c] = pick(COMP); return poolQ("比較級", a + " の比較級は？", c, [a + "er", "more " + a, a + a.slice(-1) + "er", a.replace(/y$/, "i") + "est", a + "est"].filter(x => x !== c)); }
+  () => { const [v, p] = pick(VERBS); const wrong = [v + "ed", v.replace(/e$/, "") + "ed", ...VERBS.map(x => x[1])].filter(x => x !== p); return withEx(poolQ("不規則動詞", v + " の過去形は？", p, [...new Set(wrong)]), v + " は不規則動詞で、過去形は " + p + "。-ed はつけません。"); },
+  () => { const [v, p] = pick(PP); const past = VERBS.find(x => x[0] === v); return withEx(poolQ("過去分詞", v + " の過去分詞は？", p, [past ? past[1] : v + "ed", v + "ed", v + "en", ...PP.map(x => x[1])].filter(x => x !== p)), v + " の過去分詞は " + p + "。現在完了や受け身で使います。"); },
+  () => { const [e, j] = pick(WORDS); return withEx(poolQ("英単語", e + " の意味は？", j, WORDS.map(x => x[1])), e + " ＝ " + j); },
+  () => { const [e, j] = pick(WORDS); return withEx(poolQ("英単語", "「" + j + "」を英語で？", e, WORDS.map(x => x[0])), j + " ＝ " + e); },
+  () => { const [a, c] = pick(COMP); return withEx(poolQ("比較級", a + " の比較級は？", c, [a + "er", "more " + a, a + a.slice(-1) + "er", a.replace(/y$/, "i") + "est", a + "est"].filter(x => x !== c)), ({ good: "good は形が変わる語：good − better − best", many: "many は形が変わる語：many − more − most", bad: "bad は形が変わる語：bad − worse − worst", hot: "hot は t を重ねて hotter", big: "big は g を重ねて bigger", easy: "y を i にかえて easier", busy: "y を i にかえて busier", large: "e で終わる語は r だけつけて larger" })[a] || a + " に -er をつけて " + c); }
 ];
 
 const ELEM = [["水素","H"],["炭素","C"],["窒素","N"],["酸素","O"],["ナトリウム","Na"],["マグネシウム","Mg"],["アルミニウム","Al"],["硫黄","S"],["塩素","Cl"],["カリウム","K"],["カルシウム","Ca"],["鉄","Fe"],["銅","Cu"],["亜鉛","Zn"],["銀","Ag"],["金","Au"],["ヘリウム","He"],["ケイ素","Si"],["リン","P"],["バリウム","Ba"]];
 const FORM = [["水","H₂O"],["二酸化炭素","CO₂"],["酸素","O₂"],["水素","H₂"],["窒素","N₂"],["塩化ナトリウム","NaCl"],["アンモニア","NH₃"],["酸化銅","CuO"],["硫化鉄","FeS"],["酸化マグネシウム","MgO"],["塩化水素","HCl"],["水酸化ナトリウム","NaOH"]];
 const UNITS = [["力","N"],["電流","A"],["電圧","V"],["抵抗","Ω"],["電力","W"],["圧力","Pa"],["仕事","J"],["周波数","Hz"]];
 const SCI = [
-  () => { const [n, s] = pick(ELEM); return poolQ("元素記号", n + " の元素記号は？", s, ELEM.map(x => x[1])); },
-  () => { const [n, s] = pick(ELEM); return poolQ("元素記号", s + " は何の元素？", n, ELEM.map(x => x[0])); },
-  () => { const [n, f] = pick(FORM); return poolQ("化学式", n + " の化学式は？", f, FORM.map(x => x[1])); },
-  () => { const [n, u] = pick(UNITS); return poolQ("単位", n + " の単位は？", u, UNITS.map(x => x[1])); },
-  () => { const r = pick([2, 4, 5, 10, 20]), i = pick([0.5, 1, 2, 3]); return numQ("オームの法則", "抵抗 " + r + "Ω に " + i + "A 流れた。電圧は何V？", r * i, [r / i, r + i, r * i * 2]); },
-  () => { const m = pick([100, 200, 300, 500]), a = pick([2, 4, 5, 10]); return numQ("圧力", "重さ " + m + "N の物体が " + a + "m² の面を押す。圧力は何Pa？", m / a, [m * a, m / a * 10, m - a]); }
+  () => { const [n, s] = pick(ELEM); return withEx(poolQ("元素記号", n + " の元素記号は？", s, ELEM.map(x => x[1])), n + " ＝ " + s); },
+  () => { const [n, s] = pick(ELEM); return withEx(poolQ("元素記号", s + " は何の元素？", n, ELEM.map(x => x[0])), s + " ＝ " + n); },
+  () => { const [n, f] = pick(FORM); return withEx(poolQ("化学式", n + " の化学式は？", f, FORM.map(x => x[1])), n + " ＝ " + f); },
+  () => { const [n, u] = pick(UNITS); return withEx(poolQ("単位", n + " の単位は？", u, UNITS.map(x => x[1])), n + " の単位は " + u); },
+  () => { const r = pick([2, 4, 5, 10, 20]), i = pick([0.5, 1, 2, 3]); return withEx(numQ("オームの法則", "抵抗 " + r + "Ω に " + i + "A 流れた。電圧は何V？", r * i, [r / i, r + i, r * i * 2]), "電圧＝抵抗×電流。" + r + "×" + i + "＝" + r * i + "V"); },
+  () => { const m = pick([100, 200, 300, 500]), a = pick([2, 4, 5, 10]); return withEx(numQ("圧力", "重さ " + m + "N の物体が " + a + "m² の面を押す。圧力は何Pa？", m / a, [m * a, m / a * 10, m - a]), "圧力＝力÷面積。" + m + "÷" + a + "＝" + m / a + "Pa"); }
 ];
 
 const PREF = [["北海道","札幌市"],["岩手県","盛岡市"],["宮城県","仙台市"],["茨城県","水戸市"],["栃木県","宇都宮市"],["群馬県","前橋市"],["埼玉県","さいたま市"],["神奈川県","横浜市"],["石川県","金沢市"],["山梨県","甲府市"],["愛知県","名古屋市"],["三重県","津市"],["滋賀県","大津市"],["兵庫県","神戸市"],["島根県","松江市"],["香川県","高松市"],["愛媛県","松山市"],["沖縄県","那覇市"],["青森県","青森市"],["秋田県","秋田市"],["静岡県","静岡市"],["福岡県","福岡市"],["鹿児島県","鹿児島市"],["広島県","広島市"]];
 const ERA = [["鎌倉幕府を開いた人物","源頼朝"],["室町幕府を開いた人物","足利尊氏"],["江戸幕府を開いた人物","徳川家康"],["十七条の憲法を定めた人物","聖徳太子"],["大化の改新の中心人物","中大兄皇子"],["平治の乱のあと太政大臣になった人物","平清盛"],["刀狩を行った人物","豊臣秀吉"],["楽市・楽座を行った人物","織田信長"],["大日本帝国憲法の草案づくりの中心人物","伊藤博文"],["「学問のすゝめ」を書いた人物","福沢諭吉"]];
 const WORLD = [["世界でいちばん面積が大きい大陸","ユーラシア大陸"],["世界でいちばん広い海洋","太平洋"],["本初子午線が通る国の首都","ロンドン"],["日本の標準時子午線（東経135度）が通る市","明石市"],["日本でいちばん長い川","信濃川"],["日本でいちばん面積が大きい湖","琵琶湖"]];
 const SOC = [
-  () => { const [p, c] = pick(PREF); return poolQ("都道府県庁所在地", p + " の県庁所在地は？", c, PREF.map(x => x[1])); },
-  () => { const [p, c] = pick(PREF.slice(0, 18)); return poolQ("都道府県庁所在地", c + " が県庁所在地なのは？", p, PREF.map(x => x[0])); },
-  () => { const [q, a] = pick(ERA); return poolQ("歴史の人物", q + "は？", a, ERA.map(x => x[1])); },
-  () => { const [q, a] = pick(WORLD); const alt = { "ユーラシア大陸": ["アフリカ大陸","北アメリカ大陸","南アメリカ大陸"], "太平洋": ["大西洋","インド洋","北極海"], "ロンドン": ["パリ","ベルリン","ローマ"], "明石市": ["神戸市","姫路市","大阪市"], "信濃川": ["利根川","石狩川","北上川"], "琵琶湖": ["霞ヶ浦","猪苗代湖","浜名湖"] }[a]; return poolQ("地理", q + "は？", a, alt); }
+  () => { const [p, c] = pick(PREF); return withEx(poolQ("都道府県庁所在地", p + " の県庁所在地は？", c, PREF.map(x => x[1])), p + " の県庁所在地は " + c); },
+  () => { const [p, c] = pick(PREF.slice(0, 18)); return withEx(poolQ("都道府県庁所在地", c + " が県庁所在地なのは？", p, PREF.map(x => x[0])), c + " は " + p + " の県庁所在地"); },
+  () => { const [q, a] = pick(ERA); return withEx(poolQ("歴史の人物", q + "は？", a, ERA.map(x => x[1])), q + "は " + a); },
+  () => { const [q, a] = pick(WORLD); const alt = { "ユーラシア大陸": ["アフリカ大陸","北アメリカ大陸","南アメリカ大陸"], "太平洋": ["大西洋","インド洋","北極海"], "ロンドン": ["パリ","ベルリン","ローマ"], "明石市": ["神戸市","姫路市","大阪市"], "信濃川": ["利根川","石狩川","北上川"], "琵琶湖": ["霞ヶ浦","猪苗代湖","浜名湖"] }[a]; return withEx(poolQ("地理", q + "は？", a, alt), q + "は " + a); }
 ];
 
 const SUBJECTS = {
@@ -326,11 +328,13 @@ function finish() {
   $("endSay").textContent = "クロ先生：" + say;
   $("review").innerHTML = "";
   const seen = new Set();
+  if (S.missed.length) { const h = document.createElement("li"); h.style.background = "none"; h.style.padding = "0"; h.textContent = "まちがい直し"; $("review").append(h); }
   for (const q of S.missed) {
     if (seen.has(q.q)) continue; seen.add(q.q);
     const li = document.createElement("li");
     li.append(q.q.replace(/は？$/, "").replace(/[　 ]*[＝=]?[　 ]*？$/, "") + "　→　");
     const b = document.createElement("b"); b.textContent = q.ans; li.append(b);
+    if (q.ex) { const p = document.createElement("small"); p.textContent = "クロ先生のひとこと：" + q.ex; li.append(p); }
     $("review").append(li);
   }
   show("end");

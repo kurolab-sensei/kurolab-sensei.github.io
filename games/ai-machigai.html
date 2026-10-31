@@ -4,417 +4,473 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="../assets/favicon.png">
-<meta name="description" content="AIの説明文にまざったまちがいを見抜く、中学生向けの無料ゲーム。ログイン不要。">
+<meta name="description" content="プロンプトを入れたらAIがこう答えた。どの文は信用してよくて、どの文はあやしい？中学生向けの無料ゲーム。ログイン不要。">
 <title>AIのまちがい探し</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
-/* Layout: one chalkboard column; the AI answer is a speech bubble whose sentences are tappable chalk strips. Single deliberate look (classroom board), not theme-switched. */
+/* Layout: one chalkboard column. Each round = the prompt a student typed (right bubble) → the AI's answer split into lines, each judged 信用できる / あやしい → reveal with reasons. */
 :root {
-  --board: #1f4a3c;       /* 黒板の緑 */
+  --board: #1f4a3c;
   --board-deep: #173a2f;
-  --chalk: #f3f1e7;       /* チョークの白 */
+  --chalk: #f3f1e7;
   --chalk-dim: #b9c7bd;
-  --gold: #e8b64c;        /* クロ先生のメガネ */
-  --red: #ff7a6b;         /* 赤ペン */
+  --gold: #e8b64c;
+  --red: #ff7a6b;
   --ok: #8fd8a8;
   --wood: #6b4a2f;
   --paper: #fbfaf4;
   --ink: #23302a;
+  --ink-soft: #5b6a62;
   --f-chalk: "Klee One", "Hiragino Mincho ProN", serif;
   --f-body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", sans-serif;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html, body { background: var(--board-deep); }
+[hidden] { display: none !important; }
+html, body { background: var(--board-deep); margin: 0; }
 body {
-  color: var(--chalk);
-  font-family: var(--f-body);
-  font-size: 16px;
-  line-height: 1.75;
+  color: var(--chalk); font-family: var(--f-body); font-size: 16px; line-height: 1.75;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 20px 40px;
 }
 .wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 18px; }
-
+.back { color: var(--chalk-dim); font-size: 14px; text-decoration: none; }
+.back:hover { color: var(--chalk); }
 .board {
   background:
     radial-gradient(120% 80% at 20% 0%, rgba(255,255,255,.06), transparent 60%),
     radial-gradient(90% 60% at 90% 100%, rgba(0,0,0,.18), transparent 70%),
     var(--board);
-  border: 10px solid var(--wood);
-  border-radius: 6px;
+  border: 10px solid var(--wood); border-radius: 6px;
   box-shadow: inset 0 0 40px rgba(0,0,0,.25), 0 6px 0 #4b3320;
-  padding: 20px 18px 22px;
-  display: grid;
-  gap: 16px;
-  min-width: 0;
+  padding: 20px 18px 22px; display: grid; gap: 16px; min-width: 0;
 }
 header.top { display: flex; align-items: center; gap: 14px; }
-header.top img { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--gold); flex: none; }
-header.top h1 { font-family: var(--f-chalk); font-weight: 600; font-size: clamp(24px, 6vw, 32px); line-height: 1.25; margin: 0; text-wrap: balance; letter-spacing: .02em; }
+header.top img { width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--gold); flex: none; }
+header.top h1 { font-family: var(--f-chalk); font-weight: 600; font-size: clamp(24px, 6vw, 32px); line-height: 1.25; margin: 0; }
 header.top p { margin: 2px 0 0; color: var(--chalk-dim); font-size: 13px; }
-
-.hud { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--chalk-dim); }
+.kuro { display: flex; gap: 10px; align-items: flex-start; }
+.kuro img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--gold); flex: none; }
+.kuro p { margin: 0; background: var(--chalk); color: var(--ink); border-radius: 4px 12px 12px 12px; padding: 8px 12px; font-size: 15px; }
+.hud { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: var(--chalk-dim); }
 .dots { display: flex; gap: 6px; }
-.dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--chalk-dim); }
-.dot.ok { background: var(--ok); border-color: var(--ok); }
-.dot.ng { background: var(--red); border-color: var(--red); }
-.dot.now { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(232,182,76,.35); }
-.subject { font-family: var(--f-chalk); color: var(--gold); font-weight: 600; font-size: 15px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--chalk-dim); }
+.dot.now { border-color: var(--gold); background: var(--gold); }
+.dot.done { background: var(--chalk-dim); }
 
-.ask { font-family: var(--f-chalk); font-size: 18px; margin: 0; }
-.ask small { display: block; font-family: var(--f-body); font-size: 12px; color: var(--chalk-dim); letter-spacing: .08em; }
-
-.bubble {
-  background: var(--paper);
-  color: var(--ink);
-  border-radius: 14px;
-  padding: 14px 14px 10px;
-  position: relative;
-  display: grid;
-  gap: 8px;
+.label { font-size: 12px; color: var(--chalk-dim); margin: 0 0 4px; }
+.you { justify-self: end; max-width: 90%; }
+.you .msg { background: var(--gold); color: var(--ink); border-radius: 12px 12px 4px 12px; padding: 10px 14px; margin: 0; font-weight: 700; }
+.note { font-size: 12px; color: var(--chalk-dim); margin: 4px 0 0; text-align: right; }
+.ai .head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ai .badge { font-size: 12px; font-weight: 700; background: rgba(0,0,0,.3); border-radius: 999px; padding: 1px 10px; }
+.lines { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.line { background: var(--paper); color: var(--ink); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; border: 3px solid transparent; }
+.line .t { margin: 0; }
+.pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pick button {
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; border-radius: 8px; padding: 6px 4px;
+  border: 2px solid #cfc8b2; background: #fff; color: var(--ink-soft); touch-action: manipulation;
 }
-.bubble::before {
-  content: "AIの答え";
-  font-size: 11px; font-weight: 700; letter-spacing: .12em;
-  color: #fff; background: #4a6b8a;
-  border-radius: 999px; padding: 2px 10px; justify-self: start;
-}
-.seg {
-  display: block; width: 100%; text-align: left;
-  font: inherit; font-size: 16px; line-height: 1.7; color: inherit;
-  background: #f1efe3; border: 2px solid transparent; border-radius: 10px;
-  padding: 8px 10px; cursor: pointer;
-  transition: background .15s, border-color .15s, transform .1s;
-}
-.seg:hover { background: #e9f0ea; }
-.seg:active { transform: scale(.99); }
-.seg:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-.seg[disabled] { cursor: default; }
-.seg.picked-ng { border-color: #9aa7a0; background: #eceae0; color: #6a746f; text-decoration: line-through; text-decoration-color: #9aa7a0; }
-.seg.wrong { border-color: var(--red); background: #ffe9e5; }
-.seg.wrong.found { animation: circle .5s ease-out; }
-@keyframes circle { from { box-shadow: 0 0 0 0 rgba(255,122,107,.6); } to { box-shadow: 0 0 0 10px rgba(255,122,107,0); } }
-
-.feedback { display: grid; gap: 10px; }
-.fix {
-  background: rgba(0,0,0,.18); border-left: 4px solid var(--red);
-  border-radius: 4px; padding: 10px 12px;
-}
-.fix b { font-family: var(--f-chalk); font-weight: 600; color: var(--red); font-size: 17px; }
-.fix p { margin: 4px 0 0; }
-.kuro-says { display: flex; gap: 10px; align-items: flex-start; }
-.kuro-says img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--gold); flex: none; }
-.kuro-says p { margin: 0; font-family: var(--f-chalk); font-size: 17px; min-width: 0; }
-
-.btn {
-  font: inherit; font-weight: 900; font-size: 17px;
-  background: var(--gold); color: #2b2210; border: none; border-radius: 999px;
-  padding: 12px 22px; cursor: pointer; justify-self: center;
-  box-shadow: 0 4px 0 #a97f26;
-}
-.btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #a97f26; }
-.btn:focus-visible { outline: 3px solid var(--chalk); outline-offset: 3px; }
-.btn.ghost { background: transparent; color: var(--chalk); box-shadow: inset 0 0 0 2px var(--chalk-dim); }
-
-.result { text-align: center; display: grid; gap: 12px; justify-items: center; }
-.result .score { font-family: var(--f-chalk); font-size: clamp(44px, 12vw, 64px); line-height: 1; color: var(--gold); font-variant-numeric: tabular-nums; }
-.result .score span { font-size: .45em; color: var(--chalk); }
-.result .rank { font-family: var(--f-chalk); font-size: 22px; margin: 0; }
+.pick button[aria-pressed="true"].y { background: #2f7a55; border-color: #2f7a55; color: #fff; }
+.pick button[aria-pressed="true"].n { background: #c2453a; border-color: #c2453a; color: #fff; }
+.pick button:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.line.right { border-color: #2f7a55; }
+.line.wrong { border-color: #c2453a; }
+.verdict { font-size: 13px; font-weight: 700; margin: 0; }
+.verdict.right { color: #2f7a55; }
+.verdict.wrong { color: #c2453a; }
+.why { font-size: 14px; margin: 0; background: #f1ead6; border-radius: 6px; padding: 6px 10px; }
+.btn { font: inherit; font-weight: 700; cursor: pointer; border-radius: 999px; padding: 10px 24px; border: 0; background: var(--gold); color: var(--ink); justify-self: center; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.sub { background: transparent; color: var(--chalk); border: 2px solid var(--chalk); }
+.result { display: grid; gap: 12px; text-align: center; }
+.result .score { font-family: var(--f-chalk); font-size: 52px; font-weight: 600; margin: 0; line-height: 1.1; }
+.result .score span { font-size: 20px; }
+.result .rank { color: var(--gold); font-weight: 700; font-size: 20px; margin: 0; }
 .result p { margin: 0; }
-.motto { font-family: var(--f-chalk); font-size: 18px; border-top: 2px dashed rgba(243,241,231,.35); padding-top: 12px; }
-
-.seg.marked { border-color: var(--red); background: #fff1ee; }
-.seg.marked::after { content: "あやしい"; float: right; margin-left: 8px; font-size: 11px; font-weight: 700; color: #fff; background: var(--red); border-radius: 999px; padding: 1px 8px; }
-.seg.hit { border-color: var(--red); background: #ffe9e5; }
-.seg.miss { border: 2px dashed var(--red); background: #fff6f4; }
-.seg.false { border-color: #9aa7a0; background: #eceae0; color: #5f6a64; }
-.tag { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; margin-right: 6px; vertical-align: 2px; }
-.tag.hit { background: var(--red); color: #fff; }
-.tag.miss { background: #fff; color: #c2493b; box-shadow: inset 0 0 0 1.5px #c2493b; }
-.tag.false { background: #9aa7a0; color: #fff; }
-.actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-.hint { margin: 0; color: var(--chalk-dim); font-size: 14px; }
-.check { display: grid; gap: 8px; }
-.check h3 { margin: 0; font-family: var(--f-chalk); font-weight: 600; font-size: 18px; color: var(--gold); }
-.choice { font: inherit; font-size: 15px; text-align: left; color: var(--chalk); background: rgba(0,0,0,.18); border: 2px solid rgba(243,241,231,.35); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
-.choice:hover { border-color: var(--chalk); }
-.choice:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-.choice[disabled] { cursor: default; }
-.choice.right { border-color: var(--ok); background: rgba(143,216,168,.18); }
-.choice.wrongpick { border-color: var(--red); opacity: .8; }
-.pts { font-family: var(--f-chalk); color: var(--gold); font-weight: 600; }
-.tray { height: 10px; background: var(--wood); border-radius: 0 0 4px 4px; margin-top: -18px; box-shadow: 0 3px 0 #4b3320; }
-
-.teacher {
-  background: var(--paper); color: var(--ink);
-  border-radius: 10px; padding: 16px 16px 14px; font-size: 14px; line-height: 1.8;
-}
-.teacher h2 { font-size: 15px; margin: 0 0 6px; letter-spacing: .04em; }
-.teacher ul { margin: 0; padding-left: 1.2em; }
-.teacher .foot { margin-top: 10px; color: #5b6a62; font-size: 12px; }
-.teacher a { color: #2f6b55; }
-
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
-.back { display:inline-block; color: var(--chalk-dim); font-size: 14px; text-decoration: none; margin-bottom: 4px; }
-.back:hover { color: var(--chalk); }
+.motto { font-family: var(--f-chalk); font-size: 18px; }
+.teacher { background: var(--paper); color: var(--ink); border-radius: 10px; padding: 14px 16px; }
+.teacher h2 { font-size: 16px; margin: 0 0 6px; }
+.teacher ul { margin: 0; padding-left: 1.2em; font-size: 14px; }
+.teacher .foot { font-size: 12px; color: var(--ink-soft); margin: 8px 0 0; }
 </style>
 </head>
 <body>
-
 <div class="wrap">
-  <a class="back" href="../">← クロ先生のAI職員室</a>
+  <a class="back" href="../index.html">← クロ先生のAI職員室へ</a>
   <section class="board" id="board" aria-live="polite"></section>
-  <div class="tray" aria-hidden="true"></div>
-
   <aside class="teacher">
     <h2>先生へ：授業での使い方</h2>
     <ul>
-      <li>1回5問・約5〜8分。授業の導入や、情報モラルの時間の最初に。</li>
-      <li>AIの説明文には、まちがいが0〜2か所まざっています。数字のすり替え、言葉の取り違え、言い過ぎ、それらしい作り話など、AIが実際にやりがちな間違い方です。</li><li>見つけたあとに「どう確かめるか」も選びます。</li>
+      <li>1回5問・約5〜8分。生徒が入力したプロンプトと、AIの答えが出ます。答えを一文ずつ「信用できる」「あやしい」で判定します。</li>
+      <li>反対のことのまぎれこみ、数字のまちがい、作り話のあらすじ、知らない最新情報の作り話、「必ず」などの言い過ぎ、体や薬の断定など、AIが実際にやりがちなまちがいを入れています。</li>
+      <li>遊んだあと「どこで気づいた？」「どうやって確かめる？」と聞くと、話し合いにつながります。</li>
       <li>ログイン不要。名前や点数はどこにも送られず、保存もされません。</li>
-      <li>遊んだあと「どうやって間違いに気づいた？」と聞くと、確かめ方の話し合いにつながります。</li>
     </ul>
-    <p class="foot">作：クロラボ（クロ先生のAI職員室）・試作版。問題はすべてクロラボのオリジナルです。</p>
+    <p class="foot">作：クロラボ（クロ先生のAI職員室）。問題はすべてクロラボのオリジナルです。</p>
   </aside>
 </div>
-
 <script>
-const KURO = "data:image/jpeg;base64,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";
-
-// 各問題：AIの説明文。bad = まちがいの文の番号（0〜2個）。fix = 正しくは。kind = AIがやりがちな間違い方。
+const KURO = "../assets/kuro.jpg";
 const BANK = [
-  { sub: "中2 理科・天気", q: "雲はどうやってできるの？",
-    segs: ["上空にいくほど、気温はおよそ 100m につき 0.6℃ ずつ上がります。",
-           "空気のかたまりが上昇すると、まわりの気圧が低くなるので膨張します。",
-           "膨張した空気は、温度が下がります。",
-           "温度が露点まで下がると、水蒸気が水滴になって雲ができます。",
-           "だから山の上は、ふもとより涼しいことが多いのです。"],
-    bad: { 0: ["言葉のすり替え", "上空にいくほど気温は「下がり」ます。最後の文の「山の上は涼しい」と食いちがっていました。"] },
-    check: { q: "このまちがいに気づくには、どう確かめるのが一番？",
-      opts: ["教科書の「上空の気温」の説明や図で確かめる", "同じAIに、もう一度同じ質問をする", "クラスで多数決をとる"], ok: 0,
-      why: "同じAIに聞き直しても、同じまちがいをくり返すことがあります。教科書のような確かな資料に戻るのが一番です。" } },
-
-  { sub: "中2 社会・歴史", q: "明治政府はどんな改革をしたの？",
-    segs: ["1868 年に、明治という元号が始まりました。",
-           "1871 年には廃藩置県が行われ、藩が廃止されて府や県が置かれました。",
-           "1872 年に学制が公布され、全国に小学校がつくられ始めました。",
-           "1873 年に徴兵令が出され、満 20 歳以上の男子に兵役の義務が課されました。",
-           "同じ 1873 年には地租改正が始まり、税は米で納めることになりました。"],
-    bad: { 4: ["中身のすり替え", "地租改正では、土地の値段（地価）の 3% を「現金」で納めることになりました。米で納めていた年貢からの大きな変化です。"] },
-    check: { q: "このまちがいに気づくには、どう確かめるのが一番？",
-      opts: ["年号が全部正しいので、ほかの文も正しいと考える", "教科書の地租改正のページで、税の納め方を確かめる", "文がていねいなので信じる"], ok: 1,
-      why: "年号が合っていても、中身だけすり替わっていることがあります。AIのまちがいは、正しい情報の中にまぎれこみます。" } },
-
-  { sub: "中3 数学・三平方の定理", q: "三平方の定理ってなに？",
-    segs: ["直角三角形で、直角をはさむ 2 辺を a、b、斜辺を c とすると、a² ＋ b² ＝ c² が成り立ちます。",
-           "これを三平方の定理といい、ピタゴラスの定理とも呼ばれます。",
-           "たとえば 2 辺が 3cm と 4cm の直角三角形では、斜辺は 5cm です。",
-           "2 辺が 5cm と 12cm なら、斜辺は 17cm です。",
-           "この定理は、どんな三角形にも必ず使えます。"],
-    bad: { 3: ["数字のまちがい", "5² ＋ 12² ＝ 169 ＝ 13² なので、斜辺は 13cm です。5 と 12 を足しただけの数になっていました。"],
-           4: ["言い過ぎ", "三平方の定理が成り立つのは直角三角形だけです。「必ず」「どんな〜でも」は、AIの言い過ぎのサインです。"] },
-    check: { q: "数字のまちがいに気づくには、どうするのが一番？",
-      opts: ["自分で 5² ＋ 12² を計算し直す", "答えがきりのいい数だから正しいと考える", "AIに「合ってる？」と聞き直す"], ok: 0,
-      why: "計算は、自分の手で確かめられます。AIは計算をまちがえることがあるので、数字は特に要注意です。" } },
-
-  { sub: "中1 国語・品詞", q: "品詞の分け方を教えて！",
-    segs: ["単語は、自立語と付属語に分けられます。",
-           "「静かだ」は、ものの様子を表す形容詞です。",
-           "自立語は、それだけで文節をつくることができます。",
-           "付属語には、助詞と助動詞の 2 つがあります。",
-           "活用のある自立語は、動詞・形容詞・形容動詞の 3 つです。"],
-    bad: { 1: ["言葉の取りちがえ", "「静かだ」は形容動詞です。言い切りが「だ」で終わるのが形容動詞、「い」で終わるのが形容詞です。"] },
-    check: { q: "このまちがいに気づくには、どう確かめるのが一番？",
-      opts: ["説明がくわしいので信じる", "国語の教科書や便覧の品詞の表で確かめる", "ほかの文が正しいので、これも正しいと考える"], ok: 1,
-      why: "品詞のように決まりがはっきりしたものは、教科書の表と照らし合わせればすぐ確かめられます。" } },
-
-  { sub: "中2 英語・比較", q: "比較級と最上級のつくり方は？",
-    segs: ["2 つのものを比べるときは、比較級を使います。",
-           "tall の比較級は taller、最上級は tallest です。",
-           "beautiful のような長い語は、more beautiful、most beautiful の形にします。",
-           "good の比較級は better、最上級は best です。",
-           "「〜の中で一番…」と言うときは、最上級の前に the をつけます。"],
-    bad: {},
-    check: { q: "「まちがいなし」と言い切るには、どうするのが一番？",
-      opts: ["AIが自信ありそうに書いているので大丈夫と考える", "英語っぽい文なので大丈夫と考える", "教科書の比較の表と、1 つずつ照らし合わせる"], ok: 2,
-      why: "正しいかどうかは、AIの自信ではなく、確かな資料と照らして決めます。今回は全部正しい回でした。" } },
-
-  { sub: "中1 理科・ガスバーナー", q: "ガスバーナーの使い方を教えて！",
-    segs: ["元栓を開けたら、マッチの火を近づけてから、ガス調節ねじを少しずつ開いて火をつけます。",
-           "空気が足りないと、炎はオレンジ色になります。",
-           "「オレンジ色の炎のまま使うと爆発する」と、2023 年の文部科学省の調査で報告されています。",
-           "空気調節ねじを開いて、炎が青色になるように調節します。",
-           "火を消すときは、空気調節ねじ、ガス調節ねじ、元栓の順に閉じます。"],
-    bad: { 2: ["それらしい作り話", "このような調査はありません。AIは、それらしい「出典」や「調査」を作ってしまうことがあります。オレンジ色の炎はすすが出やすく、加熱に向かないので調節します。"] },
-    check: { q: "このまちがいに気づくには、どう確かめるのが一番？",
-      opts: ["「文部科学省」と書いてあるので信じる", "その調査が本当にあるか、文部科学省のサイトなどで調べる", "2023 年と新しいので信じる"], ok: 1,
-      why: "有名な組織の名前や年号がついていても、本当にあるとは限りません。出典は、元の資料を自分で見て確かめます。" } },
-
-  { sub: "中1 社会・世界地理", q: "大陸と海洋について教えて！",
-    segs: ["世界には 6 つの大陸があります。",
-           "最も面積が大きい大陸は、ユーラシア大陸です。",
-           "三大洋とは、太平洋・大西洋・インド洋のことです。",
-           "三大洋のうち、最も広いのは大西洋です。",
-           "赤道は、アフリカ大陸や南アメリカ大陸を通っています。"],
-    bad: { 3: ["言葉のすり替え", "最も広い海洋は太平洋です。大西洋は 2 番目です。"] },
-    check: { q: "このまちがいに気づくには、どう確かめるのが一番？",
-      opts: ["地図帳の統計のページで、海洋の面積を確かめる", "AIに「本当？」と聞いて、はいと言われたら信じる", "名前を聞いたことがあるので信じる"], ok: 0,
-      why: "AIに「本当？」と聞くと、まちがいでも「はい」と答えることがあります。地図帳のような資料で確かめましょう。" } },
-
-  { sub: "中2 理科・血液と循環", q: "血液のはたらきと血管について教えて！",
-    segs: ["赤血球は、酸素を運ぶはたらきをします。",
-           "白血球は、体内に入った細菌などをとらえるはたらきをします。",
-           "血小板は、出血したときに血液を固めるはたらきをします。",
-           "血しょうは、養分や二酸化炭素などを運びます。",
-           "心臓から送り出された血液が流れる血管を、静脈といいます。",
-           "静脈には、血液の逆流を防ぐ弁がありません。"],
-    bad: { 4: ["言葉の取りちがえ", "心臓から送り出された血液が流れるのは「動脈」です。心臓にもどる血液が流れるのが静脈です。"],
-           5: ["反対の内容", "静脈には、血液の逆流を防ぐ弁があります。"] },
-    check: { q: "このまちがいに気づくには、どう確かめるのが一番？",
-      opts: ["教科書の血液の循環の図で確かめる", "前の 4 つが正しいので、残りも正しいと考える", "AIに同じ質問をして、答えが同じなら信じる"], ok: 0,
-      why: "正しい文が続いたあとに、まちがいがまぎれこむことがあります。前半が正しくても、最後まで確かめましょう。" } },
-];
-
+ {
+  "sub": "中2 理科・天気",
+  "prompt": "理科のテスト勉強中。雲ができるしくみを、中学生にわかるように教えて。",
+  "lines": [
+   [
+    "上空にいくほど、気圧は低くなります。",
+    1,
+    ""
+   ],
+   [
+    "空気のかたまりが上昇すると、膨張して温度が下がります。",
+    1,
+    ""
+   ],
+   [
+    "上空にいくほど、気温はおよそ100mにつき0.6℃ずつ上がります。",
+    0,
+    "上空にいくほど気温は「下がり」ます。すぐ前の文の「温度が下がります」とも食いちがっています。"
+   ],
+   [
+    "温度が露点まで下がると、水蒸気が水滴や氷の粒になり、雲ができます。",
+    1,
+    ""
+   ]
+  ],
+  "lesson": "正しい説明の中に、反対のことが1つだけまざることがあります。前後の文と食いちがっていないか見るのがコツです。"
+ },
+ {
+  "sub": "中2 社会・歴史",
+  "prompt": "社会の宿題。明治時代の改革を、年号つきでまとめて。",
+  "lines": [
+   [
+    "1871年、廃藩置県が行われ、藩が廃止されて府や県が置かれました。",
+    1,
+    ""
+   ],
+   [
+    "1872年、学制が公布され、全国に小学校がつくられ始めました。",
+    1,
+    ""
+   ],
+   [
+    "1873年、徴兵令が出され、満20歳以上の男子に兵役の義務が課されました。",
+    1,
+    ""
+   ],
+   [
+    "1873年、地租改正が始まり、税は米で納めることになりました。",
+    0,
+    "地租改正では、地価の3%を「現金」で納めることになりました。年号は合っていて、中身だけがすり替わっています。"
+   ]
+  ],
+  "lesson": "年号が全部合っていても、中身だけがすり替わることがあります。教科書で中身まで確かめましょう。"
+ },
+ {
+  "sub": "中3 数学・三平方の定理",
+  "prompt": "三平方の定理を、例をつけて説明して。",
+  "lines": [
+   [
+    "直角三角形で、直角をはさむ2辺をa、b、斜辺をcとすると、a²＋b²＝c²が成り立ちます。",
+    1,
+    ""
+   ],
+   [
+    "2辺が3cmと4cmの直角三角形では、斜辺は5cmです。",
+    1,
+    ""
+   ],
+   [
+    "2辺が5cmと12cmの直角三角形では、斜辺は17cmです。",
+    0,
+    "5²＋12²＝169＝13²なので、斜辺は13cmです。5と12を足しただけの数になっています。"
+   ],
+   [
+    "この定理は、どんな三角形にも必ず使えます。",
+    0,
+    "成り立つのは直角三角形だけです。「どんな〜でも」「必ず」は言い過ぎのサインです。"
+   ]
+  ],
+  "lesson": "計算は自分の手で確かめられます。AIは計算をまちがえることがあるので、数字は特に要注意です。"
+ },
+ {
+  "sub": "国語・読書感想文",
+  "prompt": "読書感想文を書きたい。夏目漱石の『坊っちゃん』のあらすじを教えて。",
+  "lines": [
+   [
+    "作者は夏目漱石で、明治時代に発表された小説です。",
+    1,
+    ""
+   ],
+   [
+    "主人公の「おれ」は、東京から四国の中学校に、数学の先生として赴任します。",
+    1,
+    ""
+   ],
+   [
+    "「赤シャツ」は、主人公をいつも助けてくれる親友です。",
+    0,
+    "赤シャツは学校の教頭で、主人公と対立する人物です。"
+   ],
+   [
+    "物語の最後、主人公は校長になって、その学校に残ります。",
+    0,
+    "主人公は学校を辞めて東京に帰ります。AIは、それらしい結末を作ってしまうことがあります。"
+   ]
+  ],
+  "lesson": "AIは、本の中身をそれらしく作ってしまうことがあります。感想文を書くときは、必ず本そのものを読みましょう。"
+ },
+ {
+  "sub": "生活・最新の情報",
+  "prompt": "明日の遠足、雨が降るか知りたい。明日の天気を教えて。",
+  "note": "このAIは、インターネットで調べることができないAIです。",
+  "lines": [
+   [
+    "明日は晴れのち曇り、降水確率は20%です。",
+    0,
+    "このAIは天気予報を調べられないのに、それらしい予報を作っています。「今日」「明日」「最新」の情報は特に要注意です。"
+   ],
+   [
+    "天気は変わりやすいので、前日の夜にもう一度確かめると安心です。",
+    1,
+    ""
+   ],
+   [
+    "最新の天気予報は、気象庁や天気予報のサイト・アプリで確かめられます。",
+    1,
+    ""
+   ]
+  ],
+  "lesson": "AIは、知らないことでも答えを作ってしまうことがあります。最新の情報は、その情報を出しているところで確かめましょう。"
+ },
+ {
+  "sub": "保健・体のこと",
+  "prompt": "頭が痛い。薬を何錠飲めばすぐ治る？",
+  "lines": [
+   [
+    "水分をとって、静かな場所で休むと楽になることがあります。",
+    1,
+    ""
+   ],
+   [
+    "市販の頭痛薬なら、1回3錠飲めば必ずすぐ治ります。",
+    0,
+    "飲む量は薬ごとに決まっていて、年れいによっても変わります。「必ず治る」も言い過ぎです。"
+   ],
+   [
+    "痛みが強いときや続くときは、おうちの人や保健室の先生に相談しましょう。",
+    1,
+    ""
+   ]
+  ],
+  "lesson": "体や薬のことは、AIの答えだけで決めないのが約束です。おうちの人や先生、薬剤師さんに相談しましょう。"
+ },
+ {
+  "sub": "中2 英語・比較",
+  "prompt": "英語の比較級と最上級のつくり方を、例つきで教えて。",
+  "lines": [
+   [
+    "tallの比較級はtaller、最上級はtallestです。",
+    1,
+    ""
+   ],
+   [
+    "beautifulのような長い語は、more beautiful、most beautifulの形にします。",
+    1,
+    ""
+   ],
+   [
+    "goodの比較級はgooder、最上級はgoodestです。",
+    0,
+    "goodは形が変わる語で、比較級はbetter、最上級はbestです。"
+   ],
+   [
+    "「〜の中で一番…」と言うときは、最上級の前にtheをつけます。",
+    1,
+    ""
+   ]
+  ],
+  "lesson": "決まりの「例外」は、AIがまちがえやすいところです。教科書の表と照らし合わせましょう。"
+ },
+ {
+  "sub": "中2 理科・血液と循環",
+  "prompt": "理科のまとめをしたい。血液の成分と血管について教えて。",
+  "lines": [
+   [
+    "赤血球は、酸素を運ぶはたらきをします。",
+    1,
+    ""
+   ],
+   [
+    "血小板は、出血したときに血液を固めるはたらきをします。",
+    1,
+    ""
+   ],
+   [
+    "心臓から送り出された血液が流れる血管を、静脈といいます。",
+    0,
+    "心臓から送り出された血液が流れるのは「動脈」です。心臓にもどる血液が流れるのが静脈です。"
+   ],
+   [
+    "静脈には、血液の逆流を防ぐ弁があります。",
+    1,
+    ""
+   ]
+  ],
+  "lesson": "正しい文が続くと、残りも信じたくなります。前半が正しくても、最後まで確かめましょう。"
+ },
+ {
+  "sub": "勉強のしかた",
+  "prompt": "明日テスト。今からどう勉強したら点が上がる？",
+  "lines": [
+   [
+    "まちがえた問題を解き直すのは、効果的な方法の一つです。",
+    1,
+    ""
+   ],
+   [
+    "徹夜すると記憶が定着するので、前日は寝ないのがいちばんです。",
+    0,
+    "記憶は眠っている間に整理されるといわれています。前日こそ、しっかり寝ることが大切です。"
+   ],
+   [
+    "この方法を使えば、だれでも必ず100点がとれます。",
+    0,
+    "「だれでも」「必ず」は言い過ぎのサインです。そんな方法はありません。"
+   ]
+  ],
+  "lesson": "「必ず」「だれでも」「絶対」が出てきたら、立ち止まって考えましょう。"
+ },
+ {
+  "sub": "中1 社会・世界地理",
+  "prompt": "世界の大陸と海洋について、テストに出そうなことを教えて。",
+  "lines": [
+   [
+    "世界には6つの大陸があります。",
+    1,
+    ""
+   ],
+   [
+    "最も面積が大きい大陸は、ユーラシア大陸です。",
+    1,
+    ""
+   ],
+   [
+    "三大洋のうち、最も広いのは大西洋です。",
+    0,
+    "最も広い海洋は太平洋です。大西洋は2番目です。"
+   ],
+   [
+    "赤道は、アフリカ大陸や南アメリカ大陸を通っています。",
+    1,
+    ""
+   ]
+  ],
+  "lesson": "よく知っている名前どうしの入れかえは、気づきにくいまちがいです。地図帳で確かめましょう。"
+ }
+]
+;
 const ROUND = 5;
 const board = document.getElementById("board");
-let qs = [], idx = 0, pts = [], marked = new Set();
+let qs = [], idx = 0, got = 0, total = 0;
 
-function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 function el(tag, attrs = {}, kids = []) {
   const e = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) { if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v; else e.setAttribute(k, v); }
+  for (const [k, v] of Object.entries(attrs)) { if (k === "text") e.textContent = v; else e.setAttribute(k, v); }
   (Array.isArray(kids) ? kids : [kids]).forEach(c => c && e.append(c));
   return e;
 }
-function header(sub) {
-  return el("header", { class: "top" }, [
-    el("img", { src: KURO, alt: "クロ先生" }),
-    el("div", {}, [el("h1", { text: "AIのまちがい探し" }), el("p", { text: sub })])
-  ]);
-}
-function kuroSays(text) { return el("div", { class: "kuro-says" }, [el("img", { src: KURO, alt: "" }), el("p", { text })]); }
+const kuro = t => el("div", { class: "kuro" }, [el("img", { src: KURO, alt: "" }), el("p", { text: t })]);
+const header = sub => el("header", { class: "top" }, [el("img", { src: KURO, alt: "クロ先生" }), el("div", {}, [el("h1", { text: "AIのまちがい探し" }), el("p", { text: sub })])]);
 
 function start() {
-  qs = shuffle(BANK).slice(0, ROUND); idx = 0; pts = [];
+  qs = shuffle(BANK).slice(0, ROUND); idx = 0; got = 0; total = 0;
+  const b = el("button", { class: "btn", type: "button", text: "はじめる" });
+  b.onclick = show;
   board.replaceChildren(
-    header("クロ先生の AI 職員室"),
-    kuroSays("AIはとても賢いけれど、ときどき自信満々にまちがえます。AIの説明文には、まちがいが 0〜2 か所まざっています。あやしい文をタップして見つけてください。"),
-    kuroSays("見抜けたら 1 点、正しい確かめ方を選べたらもう 1 点。全 5 問、10 点満点です。"),
-    el("button", { class: "btn", id: "start-btn", type: "button", text: "はじめる" })
+    header("信用していい文は、どれ？"),
+    kuro("生徒がAIに質問して、答えが返ってきました。AIはとても賢いけれど、ときどき自信満々にまちがえます。"),
+    kuro("答えを一文ずつ読んで、「信用できる」か「あやしい」かを選んでください。全部選んだら判定です。全5問。"),
+    b
   );
-  document.getElementById("start-btn").onclick = show;
-}
-
-function hud() {
-  const dots = el("div", { class: "dots", "aria-label": `${idx + 1}問目 / ${ROUND}問` });
-  for (let i = 0; i < ROUND; i++) {
-    const p = pts[i];
-    dots.append(el("span", { class: "dot" + (p === undefined ? (i === idx ? " now" : "") : (p >= 1 ? " ok" : " ng")) }));
-  }
-  const total = pts.reduce((a, b) => a + b, 0);
-  return el("div", { class: "hud" }, [el("span", { class: "subject", text: qs[idx].sub }), el("span", { class: "pts", text: `${total} 点` }), dots]);
 }
 
 function show() {
-  const q = qs[idx]; marked = new Set();
-  const bubble = el("div", { class: "bubble", id: "bubble" });
-  q.segs.forEach((s, i) => {
-    const b = el("button", { class: "seg", type: "button", "data-i": i, "aria-pressed": "false", text: s });
-    b.onclick = () => {
-      if (marked.has(i)) marked.delete(i); else marked.add(i);
-      b.classList.toggle("marked", marked.has(i));
-      b.setAttribute("aria-pressed", String(marked.has(i)));
-      judgeBtn.textContent = marked.size ? `これで判定（${marked.size}か所）` : "まちがいなし！で判定";
-    };
-    bubble.append(b);
-  });
-  const judgeBtn = el("button", { class: "btn", type: "button", id: "judge-btn", text: "まちがいなし！で判定" });
-  judgeBtn.onclick = judge;
-  board.replaceChildren(
-    hud(),
-    el("p", { class: "ask" }, [el("small", { text: "生徒の質問" }), document.createTextNode(q.q)]),
-    bubble,
-    el("div", { class: "feedback", id: "fb" }, [
-      el("p", { class: "hint", text: "あやしい文をタップ（もう一度タップで取り消し）。まちがいがないと思ったら、そのまま判定へ。" }),
-      el("div", { class: "actions" }, judgeBtn)
-    ])
-  );
-}
-
-function judge() {
   const q = qs[idx];
-  const bad = Object.keys(q.bad).map(Number);
-  const exact = bad.length === marked.size && bad.every(i => marked.has(i));
-  pts[idx] = exact ? 1 : 0;
-  const bubble = document.getElementById("bubble");
-  bubble.querySelectorAll(".seg").forEach(b => {
-    const i = Number(b.dataset.i); b.disabled = true; b.classList.remove("marked");
-    const isBad = bad.includes(i), m = marked.has(i);
-    if (isBad) b.classList.add(m ? "hit" : "miss");
-    else if (m) b.classList.add("false");
-    if (isBad || m) {
-      const label = isBad ? (m ? "見抜いた！" : "見のがし") : "正しい文";
-      b.prepend(el("span", { class: "tag " + (isBad ? (m ? "hit" : "miss") : "false"), text: label }));
-    }
+  const choice = new Array(q.lines.length).fill(null);
+  const dots = el("div", { class: "dots" });
+  for (let i = 0; i < ROUND; i++) dots.append(el("span", { class: "dot" + (i < idx ? " done" : i === idx ? " now" : "") }));
+  const you = el("div", { class: "you" }, [el("p", { class: "label", text: "生徒が入力したプロンプト" }), el("p", { class: "msg", text: q.prompt })]);
+  if (q.note) you.append(el("p", { class: "note", text: "※" + q.note }));
+  const list = el("ol", { class: "lines" });
+  const judge = el("button", { class: "btn", type: "button", text: "判定する", disabled: "" });
+  q.lines.forEach(([text], i) => {
+    const y = el("button", { class: "y", type: "button", "aria-pressed": "false", text: "◯ 信用できる" });
+    const n = el("button", { class: "n", type: "button", "aria-pressed": "false", text: "✕ あやしい" });
+    const set = v => {
+      choice[i] = v;
+      y.setAttribute("aria-pressed", String(v === 1));
+      n.setAttribute("aria-pressed", String(v === 0));
+      if (choice.every(c => c !== null)) judge.removeAttribute("disabled");
+    };
+    y.onclick = () => set(1); n.onclick = () => set(0);
+    list.append(el("li", { class: "line" }, [el("p", { class: "t", text: text }), el("div", { class: "pick" }, [y, n])]));
   });
-  const msg = exact
-    ? (bad.length === 0 ? "正解！今回はまちがいなしの回でした。「全部正しい」と言い切るのも大事な判断です。" : "お見事！まちがいをぴったり見抜きました。")
-    : (bad.length === 0 ? "今回は、まちがいのない回でした。正しい文を疑いすぎるのも、AIとのつき合い方では気をつけたいところです。"
-                        : "おしい！色のついた文を見てください。");
-  const fixes = bad.map(i => el("div", { class: "fix" }, [
-    el("b", { text: `${q.bad[i][0]}` }),
-    el("p", { text: q.bad[i][1] })
-  ]));
-  const fb = document.getElementById("fb");
-  fb.replaceChildren(kuroSays(msg), ...fixes, checkBlock(q));
+  judge.onclick = () => reveal(q, choice, list, judge);
+  board.replaceChildren(
+    el("div", { class: "hud" }, [el("span", { text: q.sub }), dots]),
+    you,
+    el("div", { class: "ai" }, [el("div", { class: "head" }, [el("span", { class: "badge", text: "AIの答え" })]), list]),
+    judge
+  );
+  window.scrollTo({ top: 0 });
 }
 
-function checkBlock(q) {
-  const box = el("div", { class: "check" }, [el("h3", { text: q.check.q })]);
-  const order = shuffle(q.check.opts.map((t, i) => i));
-  order.forEach(i => {
-    const c = el("button", { class: "choice", type: "button", text: q.check.opts[i] });
-    c.onclick = () => {
-      box.querySelectorAll(".choice").forEach(x => x.disabled = true);
-      const ok = i === q.check.ok;
-      if (ok) pts[idx] += 1;
-      box.querySelectorAll(".choice").forEach(x => { if (x.textContent === q.check.opts[q.check.ok]) x.classList.add("right"); });
-      if (!ok) c.classList.add("wrongpick");
-      const last = idx === ROUND - 1;
-      const next = el("button", { class: "btn", type: "button", id: "next-btn", text: last ? "結果を見る" : "次の問題へ" });
-      next.onclick = () => { if (last) result(); else { idx++; show(); } };
-      box.append(kuroSays((ok ? "その通り！ " : "おしい。 ") + q.check.why), next);
-      next.focus({ preventScroll: true });
-    };
-    box.append(c);
+function reveal(q, choice, list, judge) {
+  let ok = 0;
+  [...list.children].forEach((li, i) => {
+    const [, truth, why] = q.lines[i];
+    const right = choice[i] === truth;
+    if (right) ok++;
+    li.classList.add(right ? "right" : "wrong");
+    li.querySelector(".pick").remove();
+    const verdict = (truth ? "信用できる文" : "あやしい文（まちがい）") + (right ? "。正解！" : truth ? "。疑いすぎでした" : "。見のがし…");
+    li.append(el("p", { class: "verdict " + (right ? "right" : "wrong"), text: (right ? "◯ " : "✕ ") + verdict }));
+    if (why) li.append(el("p", { class: "why", text: why }));
   });
-  return box;
+  got += ok; total += q.lines.length;
+  const last = idx === ROUND - 1;
+  const next = el("button", { class: "btn", type: "button", text: last ? "結果を見る" : "次の問題へ" });
+  next.onclick = () => { if (last) result(); else { idx++; show(); } };
+  judge.replaceWith(kuro(`${q.lines.length}文中 ${ok}文 正しく判定できました。` + q.lesson), next);
 }
 
 function result() {
-  const score = pts.reduce((a, b) => a + b, 0), max = ROUND * 2;
+  const r = got / total;
   const [rank, msg] =
-    score >= 9 ? ["AIチェック名人", "見抜く力も、確かめる力もばっちりです。AIを上手に使いこなせる人です。"] :
-    score >= 6 ? ["AIチェック上級", "かなり見抜けています。「数字」「人名」「必ず」「〜の調査では」が出てきたら、特に注意してみましょう。"] :
-    score >= 3 ? ["AIチェック見習い", "AIのまちがいは、正しい文の中にまぎれこむので大人でも難しいです。もう一回やると、別の問題が出ます。"] :
-                 ["これから伸びる人", "大丈夫。今日、AIもまちがえると知ったことが一番の収穫です。"];
+    r >= .95 ? ["AIチェック名人", "信用してよい文と、あやしい文をしっかり見分けられています。"] :
+    r >= .8  ? ["AIチェック上級", "かなり見分けられています。「数字」「必ず」「明日の〜」が出てきたら特に注意しましょう。"] :
+    r >= .6  ? ["AIチェック見習い", "AIのまちがいは、正しい文の中にまぎれこむので大人でも難しいです。もう一回やると別の問題が出ます。"] :
+               ["これから伸びる人", "大丈夫。AIもまちがえると知ったことが、今日いちばんの収穫です。"];
+  const again = el("button", { class: "btn", type: "button", text: "もう一回（別の問題）" });
+  again.onclick = start;
   board.replaceChildren(
     header("結果発表"),
     el("div", { class: "result" }, [
-      el("div", { class: "score", html: `${score}<span> / ${max} 点</span>` }),
+      el("p", { class: "score" }, [document.createTextNode(String(got)), el("span", { text: ` / ${total} 文` })]),
       el("p", { class: "rank", text: rank }),
       el("p", { text: msg }),
       el("p", { class: "motto", text: "AIの答えは、最後は自分で確かめよう。" }),
-      el("button", { class: "btn", type: "button", id: "again-btn", text: "もう一回（別の問題）" })
+      again
     ])
   );
-  document.getElementById("again-btn").onclick = start;
 }
-
 start();
 </script>
 </body>
