@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>さんすうクエスト</title>
+<meta name="description" content="小学5年の算数で戦うRPG風ゲーム。正解するとクロ先生がモンスターを攻撃！ログイン不要・無料。">
+<link rel="icon" href="../assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<style>
+/* Layout: classic RPG battle screen. Night field on top (monster + HP bar), black message window with white frame, 2x2 command buttons, status bar. Single deliberate dark look. */
+:root {
+  --night: #101a33;
+  --night2: #1b2b52;
+  --ground: #2d4a3a;
+  --win: #0b0b10;
+  --frame: #f4f1e6;
+  --text: #f4f1e6;
+  --dim: #a9b1c6;
+  --gold: #f2c14e;
+  --hp: #5fd38d;
+  --hurt: #ff6b5b;
+  --mp: #6fb7ff;
+  --f: "DotGothic16", "Hiragino Kaku Gothic ProN", "Meiryo", monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: var(--night); }
+body { color: var(--text); font-family: var(--f); font-size: 17px; line-height: 1.6; -webkit-tap-highlight-color: transparent; }
+.app { max-width: 560px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; gap: 10px;
+  padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px));
+  padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
+
+.win { background: var(--win); border: 3px solid var(--frame); border-radius: 10px; box-shadow: 0 0 0 3px var(--win); padding: 12px 14px; }
+button { font-family: var(--f); }
+.cmd { font-size: 20px; color: var(--text); background: var(--win); border: 3px solid var(--frame); border-radius: 10px; padding: 14px 8px; cursor: pointer; min-height: 64px; touch-action: manipulation; }
+.cmd:hover { background: #1a1a24; }
+.cmd:active { transform: translateY(2px); }
+.cmd:focus-visible, .btn:focus-visible, .world:focus-visible, .icon-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.cmd.ok { border-color: var(--hp); color: var(--hp); }
+.cmd.ng { border-color: var(--hurt); color: var(--hurt); opacity: .75; }
+.cmd[disabled] { cursor: default; }
+.btn { font-size: 19px; color: var(--win); background: var(--gold); border: 3px solid var(--frame); border-radius: 10px; padding: 12px 22px; cursor: pointer; }
+.btn.ghost { background: var(--win); color: var(--text); }
+
+/* top bar */
+.bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; color: var(--dim); }
+.bar a { color: var(--dim); text-decoration: none; }
+.icon-btn { background: none; border: 2px solid var(--dim); color: var(--dim); border-radius: 8px; font-size: 13px; padding: 2px 8px; cursor: pointer; }
+
+/* title */
+.title { text-align: center; display: grid; gap: 10px; justify-items: center; padding-top: 8px; }
+.title h1 { font-size: clamp(34px, 10vw, 52px); margin: 0; letter-spacing: .06em; color: var(--gold); text-shadow: 3px 3px 0 #000; line-height: 1.2; }
+.title .kuro { width: 96px; height: 96px; border-radius: 50%; border: 3px solid var(--frame); image-rendering: auto; }
+.title p { margin: 0; }
+.prof { display: flex; gap: 14px; justify-content: center; font-size: 15px; color: var(--dim); flex-wrap: wrap; }
+.worlds { display: grid; gap: 10px; }
+.world { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; text-align: left; color: var(--text); background: var(--win); border: 3px solid var(--frame); border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+.world:hover { background: #1a1a24; }
+.world b { font-size: 19px; font-weight: 400; }
+.world small { grid-column: 1; color: var(--dim); font-size: 13px; }
+.world .stars { grid-row: 1 / span 2; grid-column: 2; align-self: center; color: var(--gold); font-size: 18px; letter-spacing: 2px; }
+.world.locked { opacity: .45; cursor: not-allowed; }
+
+/* battle */
+.field { position: relative; height: 210px; border: 3px solid var(--frame); border-radius: 10px; overflow: hidden;
+  background: linear-gradient(var(--night2), var(--night) 62%, var(--ground) 62%, #22382c); }
+.field .star { position: absolute; width: 2px; height: 2px; background: #fff; opacity: .7; }
+.mon { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); width: 150px; height: 140px; transition: transform .15s; }
+.mon svg { width: 100%; height: 100%; overflow: visible; }
+.mon.boss { width: 190px; height: 170px; bottom: 18px; }
+.mon.hit { animation: hit .35s; }
+.mon.die { animation: die .6s forwards; }
+.mon.atk { animation: atk .4s; }
+@keyframes hit { 0%,100% { transform: translateX(-50%); filter: none; } 20% { transform: translateX(calc(-50% - 10px)); filter: brightness(3); } 50% { transform: translateX(calc(-50% + 10px)); } 75% { transform: translateX(calc(-50% - 5px)); } }
+@keyframes die { to { transform: translateX(-50%) scale(.2); opacity: 0; filter: brightness(4); } }
+@keyframes atk { 0%,100% { transform: translateX(-50%) scale(1); } 40% { transform: translateX(-50%) scale(1.25) translateY(14px); } }
+.field.shake { animation: fshake .35s; }
+@keyframes fshake { 0%,100% { transform: none; } 25% { transform: translate(-6px, 3px); } 50% { transform: translate(6px, -3px); } 75% { transform: translate(-3px, 2px); } }
+.dmg { position: absolute; left: 50%; top: 40px; transform: translateX(-50%); font-size: 30px; color: var(--gold); text-shadow: 2px 2px 0 #000; pointer-events: none; animation: dmg .9s forwards; white-space: nowrap; }
+.dmg.crit { color: #ff9b3d; font-size: 34px; }
+@keyframes dmg { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -46px); } }
+.mhead { position: absolute; left: 10px; right: 10px; top: 8px; display: flex; align-items: center; gap: 8px; font-size: 15px; text-shadow: 1px 1px 0 #000; }
+.mhead .name { white-space: nowrap; }
+.hpbar { flex: 1; height: 10px; border: 2px solid var(--frame); border-radius: 4px; background: #000; overflow: hidden; }
+.hpbar i { display: block; height: 100%; background: var(--hurt); transition: width .3s; }
+.stage { position: absolute; right: 10px; bottom: 6px; font-size: 12px; color: var(--dim); }
+
+.msg { min-height: 108px; display: grid; gap: 6px; align-content: start; }
+.msg .q { font-size: 21px; line-height: 1.55; }
+.msg .sub { color: var(--dim); font-size: 14px; }
+.msg .ex { color: var(--gold); font-size: 15px; }
+.cmds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.status { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.status .me { display: flex; align-items: center; gap: 8px; }
+.status img { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--frame); }
+.hearts { color: var(--hurt); letter-spacing: 2px; font-size: 18px; }
+.combo { color: var(--gold); font-size: 15px; min-width: 6em; text-align: right; }
+
+/* fractions */
+.fr { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.05; margin: 0 2px; font-size: .9em; }
+.fr .n { border-bottom: 2px solid currentColor; padding: 0 3px; }
+.fr .d { padding: 0 3px; }
+.mixed { display: inline-flex; align-items: center; gap: 1px; }
+
+.result { text-align: center; display: grid; gap: 12px; justify-items: center; }
+.result h2 { font-size: 30px; margin: 0; color: var(--gold); text-shadow: 2px 2px 0 #000; font-weight: 400; }
+.result .big-stars { font-size: 40px; color: var(--gold); letter-spacing: 6px; }
+.dex { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; }
+.dex div { background: var(--win); border: 2px solid var(--dim); border-radius: 8px; padding: 4px; text-align: center; font-size: 11px; color: var(--dim); }
+.dex svg { width: 100%; height: 50px; }
+.foot { color: var(--dim); font-size: 12px; text-align: center; margin-top: auto; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+// ---------- 保存（この端末のブラウザだけ） ----------
+const SAVE_KEY = "kurolab-sansu-quest-v1";
+function load() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch (e) { return {}; } }
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+const S = Object.assign({ xp: 0, stars: {}, dex: {}, sound: true }, load());
+const level = () => 1 + Math.floor(Math.sqrt(S.xp / 20));
+
+// ---------- 小さな道具 ----------
+const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = R(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const gcd = (a, b) => b ? gcd(b, a % b) : Math.abs(a);
+const lcm = (a, b) => a / gcd(a, b) * b;
+const dec = (int, places) => { const s = (int / 10 ** places).toFixed(places); return s.includes(".") ? s.replace(/0+$/, "").replace(/\.$/, "") : s; };
+function el(tag, attrs = {}, kids = []) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v; else if (k.startsWith("on")) e[k] = v; else e.setAttribute(k, v); }
+  (Array.isArray(kids) ? kids : [kids]).forEach(c => c != null && e.append(c));
+  return e;
+}
+// 分数 {n,d} → HTML（約分済み・帯分数で表示）
+function fr(n, d) {
+  const g = gcd(n, d); n /= g; d /= g;
+  if (d === 1) return String(n);
+  const w = Math.floor(n / d), r = n % d;
+  const f = `<span class="fr"><span class="n">${r}</span><span class="d">${d}</span></span>`;
+  return w ? `<span class="mixed">${w}${f}</span>` : f;
+}
+const frKey = (n, d) => { const g = gcd(n, d); return `${n / g}/${d / g}`; };
+
+// ---------- 音（タップしてから鳴る） ----------
+let AC = null;
+function beep(freqs, dur = .09, type = "square", vol = .06) {
+  if (!S.sound) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    let t = AC.currentTime;
+    freqs.forEach(f => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = type; o.frequency.value = f; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      o.connect(g).connect(AC.destination); o.start(t); o.stop(t + dur); t += dur * .9;
+    });
+  } catch (e) {}
+}
+const SE = {
+  hit: () => beep([880, 1320], .06), crit: () => beep([660, 990, 1320, 1760], .06),
+  miss: () => beep([220, 160], .14, "sawtooth", .05), win: () => beep([523, 659, 784, 1047], .12, "triangle", .08),
+  lose: () => beep([392, 330, 262, 196], .18, "triangle", .07), tap: () => beep([660], .04)
+};
+
+// ---------- 問題をつくる ----------
+// 返り値: { q: 問題HTML, ans: 正解HTML, wrong: [まちがい候補HTML...], ex: 解説 }
+function choices(ans, wrong, filler) {
+  const out = [ans], seen = new Set([ans]);
+  for (const w of shuffle(wrong)) { if (out.length >= 4) break; if (!seen.has(w)) { seen.add(w); out.push(w); } }
+  let guard = 0;
+  while (out.length < 4 && guard++ < 50) { const w = filler(); if (!seen.has(w)) { seen.add(w); out.push(w); } }
+  return shuffle(out);
+}
+
+const GEN = {
+  // 1. 小数のかけ算・わり算
+  decimal() {
+    if (Math.random() < .55) {
+      const A = R(11, 99), B = Math.random() < .5 ? R(2, 9) * 10 : R(11, 49);   // a = A/10, b = B/10
+      const P = A * B;                                                           // 積 = P/100
+      const a = dec(A, 1), b = dec(B, 1), ans = dec(P, 2);
+      return { q: `${a} × ${b} ＝ ？`, ans, wrong: [dec(P, 1), dec(P, 3), dec(P + 10, 2), dec(P - 10, 2), dec(P, 0)],
+        filler: () => dec(P + R(-30, 30), 2), ex: B % 10 === 0 ? `小数点をとって ${A} × ${B / 10} ＝ ${A * B / 10}。小数点の下は 1けたなので、${ans}。` : `${A} × ${B} ＝ ${P} を計算して、小数点の下のけた数（1 ＋ 1 ＝ 2けた）だけ小数点をうつと ${ans}。` };
+    }
+    const k = R(2, 9), r = R(11, 99), D = r * k;            // D/10 ÷ k = r/10
+    const ans = dec(r, 1);
+    return { q: `${dec(D, 1)} ÷ ${k} ＝ ？`, ans, wrong: [dec(r, 0), dec(r, 2), dec(r + 1, 1), dec(r - 1, 1), dec(r + 10, 1)],
+      filler: () => dec(r + R(-15, 15), 1), ex: `${D} ÷ ${k} ＝ ${r}。わられる数の小数点の位置に合わせて、答えは ${ans}。` };
+  },
+  // 2. 分数（約分・通分・たし算ひき算）
+  fraction() {
+    const t = Math.random();
+    if (t < .3) {
+      const d = pick([3, 4, 5, 6, 7, 8, 9]); let n = R(1, d - 1); while (gcd(n, d) !== 1) n = R(1, d - 1);
+      const k = R(2, 6), N = n * k, Dd = d * k;
+      return { q: `<span class="fr"><span class="n">${N}</span><span class="d">${Dd}</span></span> を約分すると？`, ans: fr(n, d),
+        wrong: [`<span class="fr"><span class="n">${N / k}</span><span class="d">${Dd}</span></span>`, `<span class="fr"><span class="n">${n + 1}</span><span class="d">${d}</span></span>`, `<span class="fr"><span class="n">${n}</span><span class="d">${d + 1}</span></span>`, `<span class="fr"><span class="n">${d}</span><span class="d">${n}</span></span>`],
+        filler: () => fr(R(1, 9), R(2, 12)), ex: `分子と分母を、どちらも ${k} でわると ${n}/${d}。` };
+    }
+    const ds = [2, 3, 4, 5, 6, 8, 10, 12];
+    let b = pick(ds), d = pick(ds); while (d === b) d = pick(ds);
+    let a = R(1, b - 1), c = R(1, d - 1);
+    const L = lcm(b, d);
+    const plus = Math.random() < .6 || a * (L / b) === c * (L / d);
+    if (!plus && a / b < c / d) { [a, b, c, d] = [c, d, a, b]; }
+    const N = plus ? a * (L / b) + c * (L / d) : a * (L / b) - c * (L / d);
+    const op = plus ? "＋" : "−";
+    const F = (x, y) => `<span class="fr"><span class="n">${x}</span><span class="d">${y}</span></span>`;
+    const wrongN = plus ? a + c : Math.abs(a - c);
+    return { q: `${F(a, b)} ${op} ${F(c, d)} ＝ ？`, ans: fr(N, L),
+      wrong: [wrongN ? fr(wrongN, b + d) : "0", fr(N + 1, L), fr(Math.max(1, N - 1), L), fr(N, L * 2)],
+      filler: () => fr(R(1, 20), pick([6, 8, 10, 12, 15, 24])),
+      ex: `分母を ${L} にそろえる（通分）と、${F(a * (L / b), L)} ${op} ${F(c * (L / d), L)} ＝ ${F(N, L)}。約分できたら約分します。` };
+  },
+  // 3. 倍数と約数
+  multiple() {
+    if (Math.random() < .5) {
+      let a = R(2, 12), b = R(2, 12); while (a === b) b = R(2, 12);
+      const L = lcm(a, b);
+      return { q: `${a} と ${b} の最小公倍数は？`, ans: String(L), wrong: [String(a * b), String(L * 2), String(gcd(a, b)), String(L + a)],
+        filler: () => String(L + R(-6, 6)), ex: `${a} の倍数と ${b} の倍数で、いちばん小さい共通の数は ${L}。` };
+    }
+    const g = pick([2, 3, 4, 5, 6, 8, 9]); let x = R(2, 7), y = R(2, 7); while (x === y || gcd(x, y) !== 1) y = R(2, 7);
+    const a = g * x, b = g * y;
+    const divs = n => { const r = []; for (let i = 1; i <= n; i++) if (n % i === 0) r.push(i); return r; };
+    const common = divs(g).filter(v => v !== g);
+    return { q: `${a} と ${b} の最大公約数は？`, ans: String(g), wrong: [...common.map(String), String(Math.min(a, b)), String(g * 2), String(lcm(a, b))],
+      filler: () => String(R(1, 12)), ex: `${a} ＝ ${g} × ${x}、${b} ＝ ${g} × ${y}。両方をわりきれるいちばん大きい数は ${g}。` };
+  },
+  // 4. 面積と体積
+  area() {
+    const t = R(0, 3);
+    if (t === 0) { const s = R(2, 12) * 2, h = R(2, 12); const A = s * h / 2;
+      return { q: `底辺 ${s}cm、高さ ${h}cm の三角形の面積は？`, ans: `${A}cm²`, wrong: [`${s * h}cm²`, `${s + h}cm²`, `${A + h}cm²`],
+        filler: () => `${A + R(-8, 8)}cm²`, ex: `三角形は「底辺 × 高さ ÷ 2」。${s} × ${h} ÷ 2 ＝ ${A}。` }; }
+    if (t === 1) { const s = R(3, 15), h = R(2, 12), A = s * h;
+      return { q: `底辺 ${s}cm、高さ ${h}cm の平行四辺形の面積は？`, ans: `${A}cm²`, wrong: [`${A / 2}cm²`, `${(s + h) * 2}cm²`, `${s + h}cm²`],
+        filler: () => `${A + R(-10, 10)}cm²`, ex: `平行四辺形は「底辺 × 高さ」。${s} × ${h} ＝ ${A}。` }; }
+    if (t === 2) { let u = R(2, 9), l = R(u + 1, 14), h = R(2, 10); if ((u + l) * h % 2) h++; const A = (u + l) * h / 2;
+      return { q: `上底 ${u}cm、下底 ${l}cm、高さ ${h}cm の台形の面積は？`, ans: `${A}cm²`, wrong: [`${(u + l) * h}cm²`, `${u * l * h / 2}cm²`, `${l * h}cm²`],
+        filler: () => `${A + R(-10, 10)}cm²`, ex: `台形は「（上底 ＋ 下底）× 高さ ÷ 2」。(${u} ＋ ${l}) × ${h} ÷ 2 ＝ ${A}。` }; }
+    const a = R(2, 9), b = R(2, 9), c = R(2, 9), V = a * b * c;
+    return { q: `たて ${a}cm、横 ${b}cm、高さ ${c}cm の直方体の体積は？`, ans: `${V}cm³`, wrong: [`${a + b + c}cm³`, `${2 * (a * b + b * c + c * a)}cm³`, `${a * b}cm³`],
+      filler: () => `${V + R(-20, 20)}cm³`, ex: `直方体の体積は「たて × 横 × 高さ」。${a} × ${b} × ${c} ＝ ${V}。` };
+  },
+  // 5. 割合・速さ・平均
+  rate() {
+    const t = R(0, 3);
+    if (t === 0) { const base = pick([20, 40, 50, 60, 80, 120, 200, 300]); let p = pick([10, 20, 25, 30, 40, 50, 60, 75, 80]); while (base * p % 100) p = pick([10, 20, 50]);
+      const A = base * p / 100;
+      return { q: `${base}円の ${p}％ は何円？`, ans: `${A}円`, wrong: [`${base - A}円`, `${A * 10}円`, `${p}円`, `${base + A}円`],
+        filler: () => `${A + R(-10, 10)}円`, ex: `${p}％ は ${p / 100}。${base} × ${p / 100} ＝ ${A}円。` }; }
+    if (t === 1) { const whole = pick([20, 25, 40, 50]); let part = R(1, whole - 1); while ((part * 100) % whole) part = R(1, whole - 1);
+      const P = part * 100 / whole;
+      return { q: `${whole}人のうち ${part}人は、全体の何％？`, ans: `${P}％`, wrong: [`${part}％`, `${100 - P}％`, `${P / 10}％`, `${Math.min(99, P + 5)}％`],
+        filler: () => `${R(1, 99)}％`, ex: `割合 ＝ くらべる量 ÷ もとにする量。${part} ÷ ${whole} ＝ ${P / 100} → ${P}％。` }; }
+    if (t === 2) { const v = R(4, 12) * 5, h = R(2, 5);
+      if (Math.random() < .5) return { q: `${v * h}km を ${h} 時間で走る車の速さは時速何km？`, ans: `時速${v}km`, wrong: [`時速${v * h}km`, `時速${v + h}km`, `時速${v * 2}km`],
+        filler: () => `時速${v + R(-15, 15)}km`, ex: `速さ ＝ 道のり ÷ 時間。${v * h} ÷ ${h} ＝ ${v}。` };
+      return { q: `時速${v}km で ${h} 時間進むと、道のりは何km？`, ans: `${v * h}km`, wrong: [`${v + h}km`, `${v / 5}km`, `${v * (h + 1)}km`],
+        filler: () => `${v * h + R(-20, 20)}km`, ex: `道のり ＝ 速さ × 時間。${v} × ${h} ＝ ${v * h}。` }; }
+    const m = R(60, 90), xs = [m - R(0, 3), m + R(0, 3)]; const n3 = m + R(-2, 2); xs.push(n3, 4 * m - xs[0] - xs[1] - n3);
+    return { q: `${xs.join("点、")}点。4回のテストの平均は何点？`, ans: `${m}点`, wrong: [`${m * 4}点`, `${m + 1}点`, `${Math.max(...xs)}点`],
+      filler: () => `${m + R(-4, 4)}点`, ex: `平均 ＝ 合計 ÷ 個数。${xs.reduce((a, b) => a + b, 0)} ÷ 4 ＝ ${m}。` };
+  }
+};
+function makeQ(kind) {
+  const g = GEN[kind]();
+  return { q: g.q, ans: g.ans, opts: choices(g.ans, g.wrong, g.filler), ex: g.ex };
+}
+
+// ---------- ワールドとモンスター ----------
+const WORLDS = [
+  { id: "w1", name: "小数の森", note: "小数のかけ算・わり算", kind: "decimal", hue: 120, boss: "コスウ・トレント" },
+  { id: "w2", name: "分数の洞くつ", note: "約分・通分・たし算ひき算", kind: "fraction", hue: 200, boss: "ブンボ・ドラゴン" },
+  { id: "w3", name: "倍数の山", note: "最小公倍数・最大公約数", kind: "multiple", hue: 30, boss: "バイスー・ゴーレム" },
+  { id: "w4", name: "図形の城", note: "面積・体積", kind: "area", hue: 280, boss: "メンセキ・ナイト" },
+  { id: "w5", name: "割合の塔", note: "割合・速さ・平均", kind: "rate", hue: 0, boss: "ワリアイ・キング" },
+];
+const MON_NAMES = ["スライム", "プチゴブ", "ハネネズミ", "ゆらゆらおばけ"];
+function monSVG(hue, boss, seed) {
+  const c1 = `hsl(${hue} 65% 55%)`, c2 = `hsl(${hue} 60% 38%)`, eye = "#111";
+  const w = seed % 2 ? 6 : 0;
+  const crown = boss ? `<path d="M52 18 L60 4 L70 16 L80 2 L90 16 L100 4 L108 18 Z" fill="#f2c14e" stroke="#000" stroke-width="3"/>` : "";
+  const horns = seed === 1 ? `<path d="M48 40 L36 14 L62 32 Z M112 40 L124 14 L98 32 Z" fill="${c2}" stroke="#000" stroke-width="3"/>` : "";
+  const wings = seed === 2 ? `<path d="M30 70 Q2 40 8 88 Q20 76 36 86 Z M130 70 Q158 40 152 88 Q140 76 124 86 Z" fill="${c2}" stroke="#000" stroke-width="3"/>` : "";
+  return `<svg viewBox="0 0 160 140" aria-hidden="true">${wings}${horns}
+    <path d="M20 128 Q16 ${60 - w} 80 ${24 - w} Q144 ${60 - w} 140 128 Q110 136 80 132 Q50 136 20 128 Z" fill="${c1}" stroke="#000" stroke-width="4"/>
+    <ellipse cx="58" cy="54" rx="14" ry="8" fill="#fff" opacity=".35"/>
+    <ellipse cx="62" cy="82" rx="9" ry="12" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="64" cy="85" r="5" fill="${eye}"/>
+    <ellipse cx="98" cy="82" rx="9" ry="12" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="96" cy="85" r="5" fill="${eye}"/>
+    <path d="M66 108 Q80 ${boss ? 100 : 118} 94 108" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/>${crown}</svg>`;
+}
+
+// ---------- 画面 ----------
+const app = document.getElementById("app");
+const KURO = "../assets/kuro.jpg";
+function topbar(extra) {
+  return el("div", { class: "bar" }, [
+    el("a", { href: "../", text: "← クロ先生のAI職員室" }),
+    el("div", {}, [extra || null, el("button", { class: "icon-btn", type: "button", text: S.sound ? "音：オン" : "音：オフ",
+      onclick: e => { S.sound = !S.sound; save(); e.target.textContent = S.sound ? "音：オン" : "音：オフ"; } })])
+  ]);
+}
+
+function title() {
+  const list = el("div", { class: "worlds" });
+  WORLDS.forEach((w, i) => {
+    const prev = i === 0 || (S.stars[WORLDS[i - 1].id] || 0) > 0;
+    const st = S.stars[w.id] || 0;
+    const b = el("button", { class: "world" + (prev ? "" : " locked"), type: "button" }, [
+      el("b", { text: `${i + 1}. ${w.name}` }), el("small", { text: prev ? w.note : "ひとつ前のワールドをクリアするとひらく" }),
+      el("span", { class: "stars", text: "★".repeat(st) + "☆".repeat(3 - st) })
+    ]);
+    if (prev) b.onclick = () => { SE.tap(); startWorld(i); }; else b.disabled = true;
+    list.append(b);
+  });
+  const dexCount = Object.keys(S.dex).length;
+  app.replaceChildren(
+    topbar(),
+    el("div", { class: "title" }, [
+      el("img", { class: "kuro", src: KURO, alt: "クロ先生" }),
+      el("h1", { text: "さんすうクエスト" }),
+      el("p", { text: "正解するとクロ先生のこうげき！ 5年生の算数でモンスターをたおそう。" }),
+      el("div", { class: "prof" }, [el("span", { text: `レベル ${level()}` }), el("span", { text: `けいけんち ${S.xp}` }), el("span", { text: `ずかん ${dexCount}/${WORLDS.length * 5}` })])
+    ]),
+    list,
+    dexCount ? el("details", { class: "win" }, [el("summary", { text: "モンスターずかん" }), dexView()]) : null,
+    el("p", { class: "foot", text: "ログイン不要・無料。記録はこの端末のブラウザの中だけに保存されます。 作：クロラボ" })
+  );
+}
+function dexView() {
+  const g = el("div", { class: "dex" });
+  WORLDS.forEach((w, wi) => { for (let k = 0; k < 5; k++) {
+    const id = `${w.id}-${k}`, got = S.dex[id];
+    const name = k === 4 ? w.boss : `${w.name.slice(0, 2)}${MON_NAMES[k]}`;
+    g.append(el("div", { html: got ? monSVG(w.hue + k * 18, k === 4, k) + name : "<div style='height:50px;display:grid;place-items:center'>？</div>？？？" }));
+  } });
+  return g;
+}
+
+// バトル状態
+let B = null;
+function startWorld(wi) {
+  B = { wi, w: WORLDS[wi], stage: 0, hp: 5, maxhp: 5, combo: 0, correct: 0, total: 0 };
+  startStage();
+}
+function startStage() {
+  const boss = B.stage === 4;
+  B.boss = boss; B.mmax = boss ? 6 : 3; B.mhp = B.mmax;
+  B.mname = boss ? B.w.boss : `${B.w.name.slice(0, 2)}${MON_NAMES[B.stage]}`;
+  renderBattle(boss ? `${B.mname} があらわれた！` : `${B.mname} があらわれた！`);
+  setTimeout(nextQ, 700);
+}
+function renderBattle(text) {
+  const field = el("div", { class: "field", id: "field" });
+  for (let i = 0; i < 18; i++) field.append(el("i", { class: "star", style: `left:${R(2, 98)}%;top:${R(4, 55)}%` }));
+  field.append(
+    el("div", { class: "mhead" }, [el("span", { class: "name", text: B.mname }), el("div", { class: "hpbar" }, el("i", { id: "mhp", style: `width:${B.mhp / B.mmax * 100}%` }))]),
+    el("div", { class: "mon" + (B.boss ? " boss" : ""), id: "mon", html: monSVG(B.w.hue + B.stage * 18, B.boss, B.stage) }),
+    el("div", { class: "stage", text: `${B.w.name}　${B.boss ? "ボス" : `${B.stage + 1} / 4`}` })
+  );
+  app.replaceChildren(
+    topbar(el("button", { class: "icon-btn", type: "button", text: "にげる", style: "margin-right:6px", onclick: () => { SE.tap(); title(); } })),
+    field,
+    el("div", { class: "win msg", id: "msg" }, el("div", { class: "q", text })),
+    el("div", { class: "cmds", id: "cmds" }),
+    el("div", { class: "status" }, [
+      el("div", { class: "me" }, [el("img", { src: KURO, alt: "" }), el("div", {}, [el("div", { text: `クロ先生 Lv${level()}` }), el("div", { class: "hearts", id: "hearts" })])]),
+      el("div", { class: "combo", id: "combo" })
+    ])
+  );
+  drawStatus();
+}
+function drawStatus() {
+  document.getElementById("hearts").textContent = "♥".repeat(B.hp) + "♡".repeat(B.maxhp - B.hp);
+  document.getElementById("combo").textContent = B.combo >= 2 ? `${B.combo} れんぞく！` : "";
+}
+function nextQ() {
+  const kind = B.boss && Math.random() < .4 ? WORLDS[R(0, B.wi)].kind : B.w.kind;
+  const Q = makeQ(kind); B.Q = Q;
+  document.getElementById("msg").replaceChildren(el("div", { class: "q", html: Q.q }), el("div", { class: "sub", text: "こたえをえらんで こうげき！" }));
+  const cmds = document.getElementById("cmds"); cmds.replaceChildren();
+  Q.opts.forEach(o => cmds.append(el("button", { class: "cmd", type: "button", html: o, onclick: e => answer(o, e.currentTarget) })));
+}
+function floatText(text, crit) {
+  const f = document.getElementById("field"); const d = el("div", { class: "dmg" + (crit ? " crit" : ""), text }); f.append(d); setTimeout(() => d.remove(), 950);
+}
+function answer(o, btn) {
+  const Q = B.Q; B.total++;
+  document.querySelectorAll(".cmd").forEach(b => b.disabled = true);
+  const mon = document.getElementById("mon"), msg = document.getElementById("msg");
+  if (o === Q.ans) {
+    B.correct++; B.combo++;
+    const crit = B.combo >= 3;
+    const dmg = crit ? 2 : 1;
+    btn.classList.add("ok");
+    B.mhp = Math.max(0, B.mhp - dmg); S.xp += crit ? 3 : 2; save();
+    (crit ? SE.crit : SE.hit)();
+    mon.classList.remove("hit"); void mon.offsetWidth; mon.classList.add("hit");
+    floatText(crit ? "かいしんの いちげき！" : "せいかい！", crit);
+    document.getElementById("mhp").style.width = `${B.mhp / B.mmax * 100}%`;
+    msg.replaceChildren(el("div", { class: "q", text: crit ? `クロ先生の かいしんの いちげき！ ${dmg}ダメージ！` : `クロ先生の こうげき！ ${B.mname}に ${dmg}ダメージ！` }));
+    drawStatus();
+    if (B.mhp <= 0) return setTimeout(defeat, 700);
+    setTimeout(nextQ, 900);
+  } else {
+    B.combo = 0; B.hp--;
+    btn.classList.add("ng");
+    document.querySelectorAll(".cmd").forEach(b => { if (b.innerHTML === Q.ans) b.classList.add("ok"); });
+    SE.miss();
+    mon.classList.remove("atk"); void mon.offsetWidth; mon.classList.add("atk");
+    const f = document.getElementById("field"); f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake");
+    drawStatus();
+    msg.replaceChildren(
+      el("div", { class: "sub", html: Q.q }),
+      el("div", { class: "q", text: `${B.mname}の こうげき！ クロ先生は 1ダメージ。` }),
+      el("div", { class: "ex", html: "ヒント：" + Q.ex }),
+      el("button", { class: "btn ghost", type: "button", text: B.hp > 0 ? "つぎへ" : "……", style: "justify-self:end;font-size:16px;padding:6px 16px",
+        onclick: () => { SE.tap(); B.hp > 0 ? nextQ() : gameOver(); } })
+    );
+  }
+}
+function defeat() {
+  const mon = document.getElementById("mon"); mon.classList.add("die"); SE.win();
+  S.dex[`${B.w.id}-${B.stage}`] = 1; S.xp += B.boss ? 10 : 4; save();
+  document.getElementById("msg").replaceChildren(el("div", { class: "q", text: `${B.mname}を やっつけた！` }), el("div", { class: "sub", text: `けいけんち ＋${B.boss ? 10 : 4}` }));
+  setTimeout(() => {
+    if (B.boss) return clear();
+    B.stage++; if (B.hp < B.maxhp && B.stage % 2 === 0) B.hp++;
+    startStage();
+  }, 1300);
+}
+function clear() {
+  const st = B.hp >= 4 ? 3 : B.hp >= 2 ? 2 : 1;
+  S.stars[B.w.id] = Math.max(S.stars[B.w.id] || 0, st); save();
+  const next = WORLDS[B.wi + 1];
+  app.replaceChildren(topbar(), el("div", { class: "win result" }, [
+    el("h2", { text: `${B.w.name} クリア！` }),
+    el("div", { class: "big-stars", text: "★".repeat(st) + "☆".repeat(3 - st) }),
+    el("p", { text: `正解 ${B.correct} / ${B.total} 問　のこり ♥${B.hp}` }),
+    el("p", { text: st === 3 ? "パーフェクトに近い！ 算数の勇者だ。" : "クリアおめでとう！ もう一度で ★3 をねらおう。" }),
+    el("div", { style: "display:flex;gap:10px;flex-wrap:wrap;justify-content:center" }, [
+      next ? el("button", { class: "btn", type: "button", text: `つぎ：${next.name}`, onclick: () => { SE.tap(); startWorld(B.wi + 1); } }) : null,
+      el("button", { class: "btn ghost", type: "button", text: "ワールドをえらぶ", onclick: () => { SE.tap(); title(); } })
+    ])
+  ]));
+}
+function gameOver() {
+  SE.lose();
+  app.replaceChildren(topbar(), el("div", { class: "win result" }, [
+    el("h2", { text: "クロ先生は たおれてしまった…" }),
+    el("p", { text: `正解 ${B.correct} / ${B.total} 問。けいけんちはそのまま残っているよ。` }),
+    el("p", { text: "まちがえた問題のヒントを思い出して、もう一回！" }),
+    el("div", { style: "display:flex;gap:10px;flex-wrap:wrap;justify-content:center" }, [
+      el("button", { class: "btn", type: "button", text: "もう一回", onclick: () => { SE.tap(); startWorld(B.wi); } }),
+      el("button", { class: "btn ghost", type: "button", text: "ワールドをえらぶ", onclick: () => { SE.tap(); title(); } })
+    ])
+  ]));
+}
+title();
+</script>
+</body>
+</html>
