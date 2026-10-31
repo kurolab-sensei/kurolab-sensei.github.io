@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="../assets/favicon.png">
+<meta name="description" content="60秒で何問解ける？中学生向けの一問一答タイムアタック。数学・英語・理科・社会。ログイン不要。">
+<title>一問一答タイムアタック</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* Layout: one chalkboard column like the other games. Screens: pick a subject → 60s run → results with a review list. */
+:root {
+  --board: #1f4a3c;
+  --board-deep: #173a2f;
+  --chalk: #f3f1e7;
+  --chalk-dim: #b9c7bd;
+  --gold: #e8b64c;
+  --red: #ff7a6b;
+  --ok: #8fd8a8;
+  --wood: #6b4a2f;
+  --f-chalk: "Klee One", "Hiragino Mincho ProN", serif;
+  --f-body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--board-deep); margin: 0; }
+body {
+  color: var(--chalk);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 14px; }
+.back { color: var(--chalk-dim); font-size: 14px; text-decoration: none; }
+.back:hover { color: var(--chalk); }
+.board {
+  background:
+    radial-gradient(120% 80% at 20% 0%, rgba(255,255,255,.06), transparent 60%),
+    radial-gradient(90% 60% at 90% 100%, rgba(0,0,0,.18), transparent 70%),
+    var(--board);
+  border: 10px solid var(--wood);
+  border-radius: 6px;
+  box-shadow: inset 0 0 40px rgba(0,0,0,.25), 0 6px 0 #4b3320;
+  padding: 20px 18px 22px;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+header.top { display: flex; align-items: center; gap: 14px; }
+header.top img { width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--gold); flex: none; }
+header.top h1 { font-family: var(--f-chalk); font-weight: 600; font-size: clamp(24px, 6vw, 32px); line-height: 1.25; margin: 0; }
+header.top p { margin: 2px 0 0; color: var(--chalk-dim); font-size: 13px; }
+
+.subjects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.subj {
+  font: inherit; color: var(--chalk); text-align: left; cursor: pointer;
+  background: rgba(0,0,0,.18); border: 2px solid rgba(243,241,231,.35); border-radius: 10px;
+  padding: 12px; display: grid; gap: 2px; min-width: 0;
+}
+.subj:hover { border-color: var(--gold); }
+.subj:focus-visible, .opt:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.subj b { font-family: var(--f-chalk); font-size: 22px; }
+.subj span { font-size: 12px; color: var(--chalk-dim); }
+.subj em { font-style: normal; font-size: 12px; color: var(--gold); }
+.rule { margin: 0; font-size: 14px; color: var(--chalk-dim); }
+
+.hud { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.hud .score { font-family: var(--f-chalk); font-size: 28px; font-weight: 600; }
+.hud .combo { font-size: 14px; color: var(--gold); min-height: 1.5em; }
+.timebar { height: 10px; border-radius: 999px; background: rgba(0,0,0,.3); overflow: hidden; }
+.timebar i { display: block; height: 100%; width: 100%; background: var(--chalk); transform-origin: left; }
+.timebar.low i { background: var(--red); }
+.unit { font-size: 12px; color: var(--chalk-dim); margin: 0; }
+.q { font-family: var(--f-chalk); font-weight: 600; font-size: clamp(22px, 6vw, 30px); line-height: 1.45; margin: 0; min-height: 2.9em; display: flex; align-items: center; overflow-wrap: anywhere; }
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.opt {
+  font: inherit; font-size: 20px; font-weight: 700; color: var(--ink, #23302a); cursor: pointer;
+  background: var(--chalk); border: 0; border-radius: 10px; padding: 14px 8px; min-height: 64px;
+  box-shadow: 0 4px 0 #b9b39c; touch-action: manipulation; overflow-wrap: anywhere;
+}
+.opt:active { transform: translateY(2px); box-shadow: 0 2px 0 #b9b39c; }
+.opt.ok { background: var(--ok); }
+.opt.ng { background: var(--red); }
+.flash { text-align: center; font-weight: 700; min-height: 1.6em; margin: 0; }
+.flash.ok { color: var(--ok); }
+.flash.ng { color: var(--red); }
+
+.result { display: grid; gap: 12px; text-align: center; }
+.result .big { font-family: var(--f-chalk); font-size: 56px; font-weight: 600; line-height: 1.1; margin: 0; }
+.result .rank { font-size: 20px; font-weight: 700; color: var(--gold); margin: 0; }
+.result .meta { margin: 0; color: var(--chalk-dim); font-size: 14px; }
+.result .new { color: var(--gold); font-weight: 700; margin: 0; }
+.say { background: var(--chalk); color: #23302a; border-radius: 12px; padding: 10px 14px; text-align: left; margin: 0; font-size: 15px; }
+.review { text-align: left; display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.review li { background: rgba(0,0,0,.18); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+.review li b { color: var(--ok); }
+.btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.btn { font: inherit; font-weight: 700; cursor: pointer; border-radius: 999px; padding: 10px 22px; border: 2px solid var(--chalk); background: transparent; color: var(--chalk); }
+.btn.main { background: var(--gold); border-color: var(--gold); color: #23302a; }
+footer { font-size: 12px; color: var(--chalk-dim); text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← クロ先生のAI職員室へ</a>
+
+  <section class="board" id="home">
+    <header class="top">
+      <img src="../assets/kuro.jpg" alt="クロ先生" width="60" height="60">
+      <div>
+        <h1>一問一答タイムアタック</h1>
+        <p>60秒で、何問解ける？</p>
+      </div>
+    </header>
+    <p class="rule">教科を選ぶとすぐ始まります。正解するとコンボで点が増えます。まちがえると3秒へります。</p>
+    <div class="subjects" id="subjects"></div>
+  </section>
+
+  <section class="board" id="play" hidden>
+    <div class="hud">
+      <span class="score" id="score">0</span>
+      <span class="combo" id="combo"></span>
+    </div>
+    <div class="timebar" id="timebar"><i id="timefill"></i></div>
+    <p class="unit" id="unit"></p>
+    <p class="q" id="q"></p>
+    <div class="opts" id="opts"></div>
+    <p class="flash" id="flash" aria-live="polite"></p>
+  </section>
+
+  <section class="board" id="end" hidden>
+    <div class="result">
+      <p class="meta" id="endSubj"></p>
+      <p class="big" id="endScore">0</p>
+      <p class="rank" id="endRank"></p>
+      <p class="meta" id="endMeta"></p>
+      <p class="new" id="endNew" hidden>自己ベスト更新！</p>
+      <p class="say" id="endSay"></p>
+      <ul class="review" id="review"></ul>
+      <div class="btns">
+        <button class="btn main" id="again">もう一回</button>
+        <button class="btn" id="toHome">教科をえらぶ</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>記録はこの端末の中だけに保存されます。名前や成績は集めません。</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const rnd = n => Math.floor(Math.random() * n);
+const pick = a => a[rnd(a.length)];
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const sgn = n => n < 0 ? "−" + (-n) : String(n);
+const par = n => n < 0 ? "(" + sgn(n) + ")" : String(n);
+
+// Number answers: correct value plus near misses that students typically make.
+function numQ(unit, q, ans, near) {
+  const set = new Set([ans]);
+  for (const v of shuffle(near)) { if (set.size >= 4) break; if (Number.isFinite(v) && Math.abs(v * 10 - Math.round(v * 10)) < 1e-9) set.add(v); }
+  let k = 1;
+  while (set.size < 4) { set.add(ans + (k % 2 ? k : -k)); k++; }
+  return { unit, q, ans: sgn(ans), opts: shuffle([...set]).map(sgn) };
+}
+// Pool answers: wrong choices come from other entries of the same list.
+function poolQ(unit, q, ans, pool) {
+  const set = new Set([ans]);
+  for (const v of shuffle(pool)) { if (set.size >= 4) break; set.add(v); }
+  return { unit, q, ans, opts: shuffle([...set]) };
+}
+
+const MATH = [
+  () => { const a = rnd(19) - 9, b = rnd(19) - 9; return numQ("正負の数", par(a) + " ＋ " + par(b) + " ＝ ？", a + b, [a - b, b - a, -(a + b)]); },
+  () => { const a = rnd(19) - 9, b = rnd(19) - 9; return numQ("正負の数", par(a) + " − " + par(b) + " ＝ ？", a - b, [a + b, b - a, -a - b]); },
+  () => { const a = rnd(17) - 8 || 3, b = rnd(17) - 8 || -4; return numQ("正負の数", par(a) + " × " + par(b) + " ＝ ？", a * b, [-a * b, a + b, a * b + (a > 0 ? 1 : -1)]); },
+  () => { const a = 2 + rnd(5), s = pick([-1, 1]); return numQ("累乗", (s < 0 ? "−" : "") + a + "² ＝ ？", s * a * a, [-s * a * a, s * 2 * a, s * (a * a + a)]); },
+  () => { const a = 2 + rnd(7), b = 1 + rnd(8); const x = rnd(11) - 5, c = a * x + b; return numQ("一次方程式", a + "x ＋ " + b + " ＝ " + sgn(c) + "　x ＝ ？", x, [-x, x + 1, (c + b) / a]); },
+  () => { const a = 2 + rnd(6), b = 1 + rnd(9); return poolQ("文字式", a + "(x ＋ " + b + ") を展開すると？", a + "x＋" + a * b, [a + "x＋" + b, "x＋" + a * b, a + "x＋" + (a + b), (a + b) + "x"]); },
+  () => { const a = 1 + rnd(8), b = 1 + rnd(8); return poolQ("文字式", a + "x ＋ " + b + "x ＝ ？", (a + b) + "x", [(a * b) + "x", (a + b) + "x²", (a + b) + "", Math.abs(a - b) + "x"]); },
+  () => { const n = 2 + rnd(12); return numQ("平方根", "√" + n * n + " ＝ ？", n, [n * 2, n + 1, n - 1, Math.round(n * n / 2)]); },
+  () => { const x = 2 + rnd(5), k = 2 + rnd(5); return numQ("比例", "y は x に比例し、x＝" + x + " のとき y＝" + k * x + "。比例定数は？", k, [k * x, x, k + 1]); },
+  () => { const n = pick([5, 6, 8, 9, 10, 12]); return numQ("図形", "正" + n + "角形の内角の和は何度？", 180 * (n - 2), [180 * n, 180 * (n - 1), 360]); }
+];
+
+const VERBS = [["go","went"],["come","came"],["see","saw"],["eat","ate"],["take","took"],["make","made"],["get","got"],["give","gave"],["know","knew"],["think","thought"],["buy","bought"],["bring","brought"],["teach","taught"],["catch","caught"],["write","wrote"],["read","read"],["run","ran"],["swim","swam"],["sing","sang"],["speak","spoke"],["tell","told"],["say","said"],["find","found"],["leave","left"],["feel","felt"],["meet","met"],["sit","sat"],["stand","stood"],["begin","began"],["drink","drank"],["have","had"],["do","did"],["send","sent"],["lose","lost"],["sleep","slept"],["build","built"],["break","broke"],["choose","chose"],["fly","flew"],["draw","drew"]];
+const PP = [["go","gone"],["come","come"],["see","seen"],["eat","eaten"],["take","taken"],["write","written"],["speak","spoken"],["give","given"],["know","known"],["do","done"],["make","made"],["build","built"],["break","broken"],["sing","sung"],["swim","swum"],["begin","begun"],["choose","chosen"],["fly","flown"],["draw","drawn"],["find","found"]];
+const WORDS = [["library","図書館"],["hospital","病院"],["station","駅"],["museum","博物館"],["weather","天気"],["season","季節"],["country","国"],["language","言語"],["future","未来"],["history","歴史"],["science","理科"],["question","質問"],["answer","答え"],["important","大切な"],["difficult","難しい"],["famous","有名な"],["interesting","おもしろい"],["popular","人気のある"],["beautiful","美しい"],["useful","役に立つ"],["borrow","借りる"],["remember","覚えている"],["forget","忘れる"],["decide","決める"],["arrive","着く"]];
+const COMP = [["big","bigger"],["tall","taller"],["long","longer"],["old","older"],["hot","hotter"],["easy","easier"],["busy","busier"],["large","larger"],["good","better"],["many","more"],["bad","worse"],["fast","faster"]];
+const ENG = [
+  () => { const [v, p] = pick(VERBS); const wrong = [v + "ed", v.replace(/e$/, "") + "ed", ...VERBS.map(x => x[1])].filter(x => x !== p); return poolQ("不規則動詞", v + " の過去形は？", p, [...new Set(wrong)]); },
+  () => { const [v, p] = pick(PP); const past = VERBS.find(x => x[0] === v); return poolQ("過去分詞", v + " の過去分詞は？", p, [past ? past[1] : v + "ed", v + "ed", v + "en", ...PP.map(x => x[1])].filter(x => x !== p)); },
+  () => { const [e, j] = pick(WORDS); return poolQ("英単語", e + " の意味は？", j, WORDS.map(x => x[1])); },
+  () => { const [e, j] = pick(WORDS); return poolQ("英単語", "「" + j + "」を英語で？", e, WORDS.map(x => x[0])); },
+  () => { const [a, c] = pick(COMP); return poolQ("比較級", a + " の比較級は？", c, [a + "er", "more " + a, a + a.slice(-1) + "er", a.replace(/y$/, "i") + "est", a + "est"].filter(x => x !== c)); }
+];
+
+const ELEM = [["水素","H"],["炭素","C"],["窒素","N"],["酸素","O"],["ナトリウム","Na"],["マグネシウム","Mg"],["アルミニウム","Al"],["硫黄","S"],["塩素","Cl"],["カリウム","K"],["カルシウム","Ca"],["鉄","Fe"],["銅","Cu"],["亜鉛","Zn"],["銀","Ag"],["金","Au"],["ヘリウム","He"],["ケイ素","Si"],["リン","P"],["バリウム","Ba"]];
+const FORM = [["水","H₂O"],["二酸化炭素","CO₂"],["酸素","O₂"],["水素","H₂"],["窒素","N₂"],["塩化ナトリウム","NaCl"],["アンモニア","NH₃"],["酸化銅","CuO"],["硫化鉄","FeS"],["酸化マグネシウム","MgO"],["塩化水素","HCl"],["水酸化ナトリウム","NaOH"]];
+const UNITS = [["力","N"],["電流","A"],["電圧","V"],["抵抗","Ω"],["電力","W"],["圧力","Pa"],["仕事","J"],["周波数","Hz"]];
+const SCI = [
+  () => { const [n, s] = pick(ELEM); return poolQ("元素記号", n + " の元素記号は？", s, ELEM.map(x => x[1])); },
+  () => { const [n, s] = pick(ELEM); return poolQ("元素記号", s + " は何の元素？", n, ELEM.map(x => x[0])); },
+  () => { const [n, f] = pick(FORM); return poolQ("化学式", n + " の化学式は？", f, FORM.map(x => x[1])); },
+  () => { const [n, u] = pick(UNITS); return poolQ("単位", n + " の単位は？", u, UNITS.map(x => x[1])); },
+  () => { const r = pick([2, 4, 5, 10, 20]), i = pick([0.5, 1, 2, 3]); return numQ("オームの法則", "抵抗 " + r + "Ω に " + i + "A 流れた。電圧は何V？", r * i, [r / i, r + i, r * i * 2]); },
+  () => { const m = pick([100, 200, 300, 500]), a = pick([2, 4, 5, 10]); return numQ("圧力", "重さ " + m + "N の物体が " + a + "m² の面を押す。圧力は何Pa？", m / a, [m * a, m / a * 10, m - a]); }
+];
+
+const PREF = [["北海道","札幌市"],["岩手県","盛岡市"],["宮城県","仙台市"],["茨城県","水戸市"],["栃木県","宇都宮市"],["群馬県","前橋市"],["埼玉県","さいたま市"],["神奈川県","横浜市"],["石川県","金沢市"],["山梨県","甲府市"],["愛知県","名古屋市"],["三重県","津市"],["滋賀県","大津市"],["兵庫県","神戸市"],["島根県","松江市"],["香川県","高松市"],["愛媛県","松山市"],["沖縄県","那覇市"],["青森県","青森市"],["秋田県","秋田市"],["静岡県","静岡市"],["福岡県","福岡市"],["鹿児島県","鹿児島市"],["広島県","広島市"]];
+const ERA = [["鎌倉幕府を開いた人物","源頼朝"],["室町幕府を開いた人物","足利尊氏"],["江戸幕府を開いた人物","徳川家康"],["十七条の憲法を定めた人物","聖徳太子"],["大化の改新の中心人物","中大兄皇子"],["平治の乱のあと太政大臣になった人物","平清盛"],["刀狩を行った人物","豊臣秀吉"],["楽市・楽座を行った人物","織田信長"],["大日本帝国憲法の草案づくりの中心人物","伊藤博文"],["「学問のすゝめ」を書いた人物","福沢諭吉"]];
+const WORLD = [["世界でいちばん面積が大きい大陸","ユーラシア大陸"],["世界でいちばん広い海洋","太平洋"],["本初子午線が通る国の首都","ロンドン"],["日本の標準時子午線（東経135度）が通る市","明石市"],["日本でいちばん長い川","信濃川"],["日本でいちばん面積が大きい湖","琵琶湖"]];
+const SOC = [
+  () => { const [p, c] = pick(PREF); return poolQ("都道府県庁所在地", p + " の県庁所在地は？", c, PREF.map(x => x[1])); },
+  () => { const [p, c] = pick(PREF.slice(0, 18)); return poolQ("都道府県庁所在地", c + " が県庁所在地なのは？", p, PREF.map(x => x[0])); },
+  () => { const [q, a] = pick(ERA); return poolQ("歴史の人物", q + "は？", a, ERA.map(x => x[1])); },
+  () => { const [q, a] = pick(WORLD); const alt = { "ユーラシア大陸": ["アフリカ大陸","北アメリカ大陸","南アメリカ大陸"], "太平洋": ["大西洋","インド洋","北極海"], "ロンドン": ["パリ","ベルリン","ローマ"], "明石市": ["神戸市","姫路市","大阪市"], "信濃川": ["利根川","石狩川","北上川"], "琵琶湖": ["霞ヶ浦","猪苗代湖","浜名湖"] }[a]; return poolQ("地理", q + "は？", a, alt); }
+];
+
+const SUBJECTS = {
+  math: { name: "数学", sub: "正負の数・方程式・平方根など", gen: MATH },
+  eng: { name: "英語", sub: "不規則動詞・単語・比較級", gen: ENG },
+  sci: { name: "理科", sub: "元素記号・化学式・単位・計算", gen: SCI },
+  soc: { name: "社会", sub: "県庁所在地・歴史の人物・地理", gen: SOC },
+  mix: { name: "ミックス", sub: "4教科からランダム", gen: [...MATH, ...ENG, ...SCI, ...SOC] }
+};
+
+const KEY = "kurolab-time-attack-v1";
+let best = {};
+try { best = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { best = {}; }
+const saveBest = () => { try { localStorage.setItem(KEY, JSON.stringify(best)); } catch (e) {} };
+
+const LIMIT = 60000, PENALTY = 3000;
+let S = null, timer = 0;
+
+function show(id) { for (const s of ["home", "play", "end"]) $(s).hidden = s !== id; }
+
+function renderHome() {
+  $("subjects").innerHTML = "";
+  for (const [k, v] of Object.entries(SUBJECTS)) {
+    const b = document.createElement("button");
+    b.className = "subj";
+    b.innerHTML = "<b>" + v.name + "</b><span>" + v.sub + "</span><em>" + (best[k] ? "ベスト " + best[k] + "点" : "まだ記録なし") + "</em>";
+    b.onclick = () => start(k);
+    $("subjects").append(b);
+  }
+  show("home");
+}
+
+function nextQ() {
+  let q, tries = 0;
+  do { q = pick(SUBJECTS[S.subj].gen)(); tries++; } while (S.last === q.q && tries < 5);
+  S.last = q.q; S.cur = q; S.locked = false;
+  $("unit").textContent = q.unit;
+  $("q").textContent = q.q;
+  $("opts").innerHTML = "";
+  for (const o of q.opts) {
+    const b = document.createElement("button");
+    b.className = "opt"; b.textContent = o;
+    b.onclick = () => answer(b, o);
+    $("opts").append(b);
+  }
+}
+
+function answer(btn, o) {
+  if (S.locked || S.over) return;
+  S.locked = true;
+  const q = S.cur;
+  if (o === q.ans) {
+    S.combo++; S.right++;
+    const gain = 10 + Math.min(S.combo - 1, 5) * 2;
+    S.score += gain;
+    btn.classList.add("ok");
+    $("flash").className = "flash ok"; $("flash").textContent = "せいかい！ +" + gain;
+  } else {
+    S.combo = 0; S.wrong++;
+    S.end -= PENALTY;
+    S.missed.push(q);
+    btn.classList.add("ng");
+    for (const b of $("opts").children) if (b.textContent === q.ans) b.classList.add("ok");
+    $("flash").className = "flash ng"; $("flash").textContent = "ざんねん　−3秒";
+  }
+  $("score").textContent = S.score;
+  $("combo").textContent = S.combo >= 2 ? S.combo + " コンボ！" : "";
+  setTimeout(() => { if (!S.over) nextQ(); }, o === q.ans ? 250 : 900);
+}
+
+function tick() {
+  if (!S || S.over) return;
+  const left = S.end - performance.now();
+  const r = Math.max(0, left / LIMIT);
+  $("timefill").style.transform = "scaleX(" + r + ")";
+  $("timebar").classList.toggle("low", left < 10000);
+  if (left <= 0) return finish();
+  timer = requestAnimationFrame(tick);
+}
+
+function start(k) {
+  S = { subj: k, score: 0, combo: 0, right: 0, wrong: 0, missed: [], over: false, last: "", end: performance.now() + LIMIT };
+  $("score").textContent = "0"; $("combo").textContent = ""; $("flash").textContent = "";
+  show("play");
+  nextQ();
+  cancelAnimationFrame(timer);
+  timer = requestAnimationFrame(tick);
+}
+
+const RANKS = [[300, "職員室の伝説", "ここまで来るとクロ先生もびっくりです。友だちに挑戦状を出してみましょう。"], [200, "学年トップクラス", "スピードも正確さも十分。コンボを切らさないのが次の課題です。"], [120, "なかなかの実力", "いい調子です。まちがえた問題を見直すと、すぐに点が伸びます。"], [60, "準備運動完了", "慣れると一気に伸びます。下のまちがい直しを見てから、もう一回。"], [0, "まずは一歩", "最初はみんなこんなものです。ゆっくりでも正解を重ねるとコンボになります。"]];
+
+function finish() {
+  S.over = true;
+  cancelAnimationFrame(timer);
+  const isNew = S.score > (best[S.subj] || 0);
+  if (isNew) { best[S.subj] = S.score; saveBest(); }
+  const [, rank, say] = RANKS.find(r => S.score >= r[0]);
+  $("endSubj").textContent = SUBJECTS[S.subj].name + "の結果";
+  $("endScore").textContent = S.score + "点";
+  $("endRank").textContent = rank;
+  $("endMeta").textContent = "正解 " + S.right + "問 ／ まちがい " + S.wrong + "問 ／ ベスト " + best[S.subj] + "点";
+  $("endNew").hidden = !(isNew && S.score > 0);
+  $("endSay").textContent = "クロ先生：" + say;
+  $("review").innerHTML = "";
+  const seen = new Set();
+  for (const q of S.missed) {
+    if (seen.has(q.q)) continue; seen.add(q.q);
+    const li = document.createElement("li");
+    li.append(q.q.replace(/は？$/, "").replace(/[　 ]*[＝=]?[　 ]*？$/, "") + "　→　");
+    const b = document.createElement("b"); b.textContent = q.ans; li.append(b);
+    $("review").append(li);
+  }
+  show("end");
+}
+
+$("again").onclick = () => start(S.subj);
+$("toHome").onclick = renderHome;
+document.addEventListener("keydown", e => {
+  if ($("play").hidden || !S || S.locked) return;
+  const i = "1234".indexOf(e.key);
+  if (i >= 0) { const b = $("opts").children[i]; if (b) b.click(); }
+});
+renderHome();
+</script>
+</body>
+</html>
