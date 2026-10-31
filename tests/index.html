@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="../assets/favicon.png">
+<title>定期テスト自動作成</title>
+<meta name="description" content="単元を選ぶだけで、100点満点の定期テスト・単元テストを自動作成。解答用紙・解答と解説つき、A4で印刷できます。中学1年理科から。クロラボのオリジナル問題です。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* Layout: a settings panel (screen only) above a stack of A4 "paper" sheets: 問題 → 解答用紙 → 解答・解説. Printing hides the panel and breaks pages per sheet. */
+:root {
+  --board: #1f4a3c;
+  --board-deep: #173a2f;
+  --chalk: #f3f1e7;
+  --chalk-dim: #b9c7bd;
+  --gold: #e8b64c;
+  --paper: #f7f4ea;
+  --card: #fffdf6;
+  --ink: #23302a;
+  --ink-soft: #5b6a62;
+  --line: #e2dccb;
+  --f-chalk: "Klee One", "Hiragino Mincho ProN", serif;
+  --f-body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: #e9e5d8; }
+body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.7; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-left, 0px)) 48px; }
+.back { color: var(--ink-soft); font-size: 14px; text-decoration: none; }
+
+.panel { background: var(--board); color: var(--chalk); border-radius: 12px; padding: 18px; display: grid; gap: 14px; margin: 10px 0 20px; }
+.panel header { display: flex; gap: 12px; align-items: center; }
+.panel header img { width: 52px; height: 52px; border-radius: 50%; border: 3px solid var(--gold); }
+.panel h1 { font-family: var(--f-chalk); font-weight: 600; font-size: clamp(22px, 5vw, 30px); margin: 0; line-height: 1.3; }
+.panel p { margin: 0; font-size: 13px; color: var(--chalk-dim); }
+.row { display: grid; gap: 6px; }
+.row > span { font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--chalk-dim); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg label { cursor: pointer; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label span { display: inline-block; border: 1.5px solid rgba(243,241,231,.45); border-radius: 999px; padding: 4px 14px; font-size: 14px; font-weight: 700; }
+.seg input:checked + span { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+.seg input:focus-visible + span { outline: 3px solid var(--chalk); outline-offset: 2px; }
+.seg input:disabled + span { opacity: .4; cursor: default; }
+.panel input[type=text], .panel input[type=number] { font: inherit; border-radius: 8px; border: 0; padding: 6px 10px; width: 100%; max-width: 360px; color: var(--ink); }
+.btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { font: inherit; font-weight: 700; cursor: pointer; border-radius: 999px; padding: 9px 20px; border: 2px solid var(--chalk); background: transparent; color: var(--chalk); }
+.btn.main { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+.btn:focus-visible { outline: 3px solid var(--chalk); outline-offset: 2px; }
+.note { font-size: 12px; color: var(--chalk-dim); }
+.summary { font-size: 14px; color: var(--ink-soft); margin: 0 0 10px; }
+
+/* paper */
+.sheet { background: #fff; color: #111; width: 100%; max-width: 794px; margin: 0 auto 24px; padding: 40px 44px; box-shadow: 0 2px 10px rgba(0,0,0,.15); font-family: "Hiragino Mincho ProN", "Yu Mincho", "Klee One", serif; font-size: 14px; line-height: 1.75; }
+.sheet h2 { font-family: var(--f-body); font-size: 20px; text-align: center; margin: 0 0 4px; }
+.sheet .sub { text-align: center; margin: 0 0 10px; font-size: 13px; }
+.namebar { display: grid; grid-template-columns: 1fr 1fr 2.4fr 1.4fr; border: 1.5px solid #111; margin-bottom: 18px; font-family: var(--f-body); font-size: 12px; }
+.namebar div { border-right: 1px solid #111; padding: 4px 8px; min-height: 40px; }
+.namebar div:last-child { border-right: 0; }
+.namebar b { display: block; font-size: 11px; }
+.dq { margin: 0 0 20px; break-inside: auto; }
+.dq h3 { font-family: var(--f-body); font-size: 15px; margin: 0 0 6px; display: flex; gap: 8px; align-items: center; border-bottom: 1.5px solid #111; padding-bottom: 2px; }
+.dq h3 .num { display: inline-grid; place-items: center; width: 26px; height: 26px; border: 1.5px solid #111; font-size: 15px; }
+.dq h3 .pts { margin-left: auto; font-size: 12px; font-weight: 500; }
+.lead { margin: 0 0 8px; }
+.intro { break-inside: avoid; }
+.fig { margin: 6px 0 10px; overflow-x: auto; }
+.fig svg { max-width: 100%; height: auto; }
+.tbl { border-collapse: collapse; margin: 6px 0; font-size: 13px; font-family: var(--f-body); }
+.tbl th, .tbl td { border: 1px solid #111; padding: 2px 8px; text-align: center; }
+.tbl th { background: #f2f2f2; font-weight: 700; }
+.items { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.items li { display: grid; grid-template-columns: auto 1fr; gap: 6px; break-inside: avoid; }
+.items .n { font-family: var(--f-body); font-weight: 700; }
+.items .ch { display: grid; gap: 0 16px; margin-top: 2px; padding-left: 1em; }
+.items .ch.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ans-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1.5px solid #111; border-left: 1.5px solid #111; margin-bottom: 14px; }
+.ans-grid .cell { border-right: 1.5px solid #111; border-bottom: 1.5px solid #111; min-height: 46px; padding: 2px 6px; font-family: var(--f-body); font-size: 11px; display: flex; justify-content: space-between; }
+.ans-grid .cell.wide { grid-column: 1 / -1; min-height: 72px; }
+.ans-grid .cell .p { color: #555; }
+.ans-head { font-family: var(--f-body); font-weight: 700; margin: 0 0 4px; }
+.key li { grid-template-columns: auto 1fr; }
+.key .a { font-family: var(--f-body); font-weight: 700; }
+.key .x { font-size: 12.5px; color: #333; }
+.key .c { font-size: 12px; color: #6b4a00; }
+.foot { font-family: var(--f-body); font-size: 10px; color: #777; text-align: right; margin-top: 12px; }
+@media (max-width: 600px) { .sheet { padding: 22px 16px; } .ans-grid { grid-template-columns: 1fr; } .namebar { grid-template-columns: 1fr 1fr; } }
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  html, body { background: #fff; }
+  .wrap { max-width: none; padding: 0; }
+  .panel, .back, .summary, .noprint { display: none !important; }
+  .sheet { box-shadow: none; max-width: none; margin: 0; padding: 0; break-after: page; }
+  .sheet:last-child { break-after: auto; }
+  .dq h3 { break-after: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back noprint" href="../index.html">← クロ先生のAI職員室へ</a>
+
+  <section class="panel" aria-label="テストの設定">
+    <header>
+      <img src="../assets/kuro.jpg" alt="クロ先生" width="52" height="52">
+      <div>
+        <h1>定期テスト自動作成</h1>
+        <p>単元を選ぶだけで、100点満点のテストと解答用紙・解答解説ができます。問題はすべてクロラボのオリジナルです。</p>
+      </div>
+    </header>
+    <div class="row"><span>教科</span>
+      <div class="seg" id="subj">
+        <label><input type="radio" name="subj" value="sci1" checked><span>中1 理科</span></label>
+        <label><input type="radio" name="subj" disabled><span>中2 理科（準備中）</span></label>
+        <label><input type="radio" name="subj" disabled><span>中3 理科（準備中）</span></label>
+      </div>
+    </div>
+    <div class="row"><span>テストの種類</span>
+      <div class="seg">
+        <label><input type="radio" name="mode" value="term" checked><span>定期テスト（単元を組み合わせる）</span></label>
+        <label><input type="radio" name="mode" value="unit"><span>単元別テスト</span></label>
+      </div>
+    </div>
+    <div class="row"><span id="unitLabel">出題する単元（複数選べます）</span><div class="seg" id="units"></div></div>
+    <div class="row"><span>テストの名前</span><input type="text" id="title" value="2学期 中間テスト"></div>
+    <div class="row"><span>つけるもの</span>
+      <div class="seg">
+        <label><input type="checkbox" id="optSheet" checked><span>解答用紙</span></label>
+        <label><input type="checkbox" id="optKey" checked><span>解答・解説</span></label>
+      </div>
+    </div>
+    <div class="btns">
+      <button class="btn main" id="make" type="button">テストを作る</button>
+      <button class="btn" id="remake" type="button">別の問題で作り直す</button>
+      <button class="btn" id="print" type="button">印刷する（A4）</button>
+    </div>
+    <p class="note">難易度は県立高校入試の基本〜標準レベル（用語・計算・グラフ読み取り・記述）。テスト番号を控えておけば、同じテストをもう一度作れます：<input type="number" id="seed" style="width:120px;display:inline-block;padding:2px 6px" aria-label="テスト番号"></p>
+  </section>
+
+  <p class="summary" id="summary"></p>
+  <div id="out"></div>
+</div>
+
+<script src="sci1.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const KANA = ["ア", "イ", "ウ", "エ"];
+const WEIGHT = { word: 2, choice: 3, order: 3, calc: 4, desc: 5 };
+
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const shuffleR = (a, r) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+const data = () => window.KUROTEST[document.querySelector("input[name=subj]:checked").value];
+const mode = () => document.querySelector("input[name=mode]:checked").value;
+
+function renderUnits() {
+  const d = data(), m = mode();
+  $("unitLabel").textContent = m === "term" ? "出題する単元（複数選べます）" : "単元（1つ選ぶ）";
+  $("units").innerHTML = Object.entries(d.units).map(([k, v], i) =>
+    `<label><input type="${m === "term" ? "checkbox" : "radio"}" name="unit" value="${k}" ${m === "term" ? (i < 2 ? "checked" : "") : (i === 0 ? "checked" : "")}><span>${v}</span></label>`).join("");
+  $("title").value = m === "term" ? "2学期 中間テスト" : "単元テスト";
+}
+
+// 配点：重みに比例して100点に配り、端数は最大剰余で調整
+function allot(items) {
+  const w = items.map(it => WEIGHT[it.type]), sum = w.reduce((a, b) => a + b, 0);
+  const raw = w.map(x => x * 100 / sum), pts = raw.map(Math.floor);
+  let rest = 100 - pts.reduce((a, b) => a + b, 0);
+  raw.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (rest > 0) { pts[i]++; rest--; } });
+  items.forEach((it, i) => it.pts = pts[i]);
+}
+
+function build(seed) {
+  const r = rng(seed), d = data(), m = mode();
+  const units = [...document.querySelectorAll("input[name=unit]:checked")].map(x => x.value);
+  if (!units.length) { alert("単元を1つ以上選んでください。"); return null; }
+  let chosen = [];
+  if (m === "unit") {
+    chosen = shuffleR(d.templates.filter(t => t.unit === units[0]), r);
+  } else {
+    const total = units.length === 1 ? 5 : units.length === 4 ? 8 : 6;
+    const pools = units.map(u => shuffleR(d.templates.filter(t => t.unit === u), r));
+    for (let i = 0; chosen.length < total && pools.some(p => p.length); i++) { const p = pools[i % pools.length]; if (p.length) chosen.push(p.shift()); }
+    // 単元の順（教科書の順）に並べる
+    const order = Object.keys(d.units);
+    chosen.sort((a, b) => order.indexOf(a.unit) - order.indexOf(b.unit));
+  }
+  const target = m === "unit" ? 36 : 42;
+  const per = Math.ceil(target / chosen.length);
+  const dqs = chosen.map(t => {
+    const g = t.f(r);
+    let keep = g.items.map((it, i) => i);
+    if (keep.length > per) keep = shuffleR(keep, r).slice(0, per).sort((a, b) => a - b);
+    g.items = keep.map(i => g.items[i]);
+    return g;
+  });
+  allot(dqs.flatMap(g => g.items));
+  return { seed, title: $("title").value || "テスト", name: d.name, units: units.map(u => d.units[u]), dqs, mode: m };
+}
+
+function render(T) {
+  const nItems = T.dqs.reduce((a, g) => a + g.items.length, 0);
+  $("summary").textContent = `テスト番号 ${T.seed}　／　大問 ${T.dqs.length}・小問 ${nItems}・100点　／　出題範囲：${T.units.join("、")}`;
+  const head = (label) => `<h2>${esc(T.title)}　${T.name}${label}</h2><p class="sub">出題範囲：${esc(T.units.join("、"))}　／　50分　／　100点</p>`;
+  const nameBar = `<div class="namebar"><div><b>年</b>1年</div><div><b>組・番</b>　組　　番</div><div><b>氏名</b></div><div><b>得点</b>　　　／100</div></div>`;
+  const qHtml = T.dqs.map((g, gi) => `<section class="dq"><h3><span class="num">${gi + 1}</span>${esc(g.title)}<span class="pts">（${g.items.reduce((a, it) => a + it.pts, 0)}点）</span></h3>
+    <div class="intro"><p class="lead">${g.lead}</p>${g.fig ? `<div class="fig">${g.fig}</div>` : ""}</div>
+    <ol class="items">${g.items.map((it, i) => `<li><span class="n">(${i + 1})</span><div>${esc(it.q)}${it.type === "order" ? "（記号で答えなさい）" : ""}${it.choices ? `<div class="ch${it.choices.every(c => c.length <= 18) ? " two" : ""}">${it.choices.map(c => `<span>${esc(c)}</span>`).join("")}</div>` : ""}</div></li>`).join("")}</ol></section>`).join("");
+  let html = `<article class="sheet">${head("")}${nameBar}${qHtml}<p class="foot">クロ先生のAI職員室　定期テスト自動作成　テスト番号 ${T.seed}</p></article>`;
+  if ($("optSheet").checked) {
+    html += `<article class="sheet">${head("　解答用紙")}${nameBar}${T.dqs.map((g, gi) => `<p class="ans-head">${gi + 1}　${esc(g.title)}</p><div class="ans-grid">${g.items.map((it, i) => `<div class="cell${it.type === "desc" || (it.type === "word" && it.ans.length > 14) ? " wide" : ""}"><span>(${i + 1})</span><span class="p">${it.pts}点</span></div>`).join("")}</div>`).join("")}<p class="foot">テスト番号 ${T.seed}</p></article>`;
+  }
+  if ($("optKey").checked) {
+    html += `<article class="sheet key">${head("　解答・解説")}${T.dqs.map((g, gi) => `<section class="dq"><h3><span class="num">${gi + 1}</span>${esc(g.title)}<span class="pts">（${g.items.reduce((a, it) => a + it.pts, 0)}点）</span></h3><ol class="items">${g.items.map((it, i) => `<li><span class="n">(${i + 1})</span><div><span class="a">${esc(it.ans)}</span>　<small>［${it.pts}点］</small>${it.crit ? `<div class="c">採点の目安：${esc(it.crit)}</div>` : ""}${it.ex ? `<div class="x">${esc(it.ex)}</div>` : ""}</div></li>`).join("")}</ol></section>`).join("")}<p class="foot">テスト番号 ${T.seed}</p></article>`;
+  }
+  $("out").innerHTML = html;
+}
+
+function make(seed) { const T = build(seed); if (T) { $("seed").value = seed; render(T); } }
+const newSeed = () => 10000 + Math.floor(Math.random() * 89999);
+
+document.querySelectorAll("input[name=mode]").forEach(x => x.onchange = () => { renderUnits(); make(newSeed()); });
+$("units").onchange = () => make(Number($("seed").value) || newSeed());
+$("make").onclick = () => make(Number($("seed").value) || newSeed());
+$("remake").onclick = () => make(newSeed());
+$("print").onclick = () => window.print();
+$("optSheet").onchange = $("optKey").onchange = $("title").oninput = () => make(Number($("seed").value) || newSeed());
+renderUnits();
+make(newSeed());
+</script>
+</body>
+</html>
