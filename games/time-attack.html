@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="../assets/favicon.png">
-<meta name="description" content="60秒で何問解ける？中学生向けの一問一答タイムアタック。数学・英語・理科・社会。ログイン不要。">
+<meta name="description" content="60秒で何問解ける？中学生向けの一問一答タイムアタック。数学・英語・理科・社会の中1〜中3、48単元。まちがえた問題は解説つき。ログイン不要。">
 <title>一問一答タイムアタック</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -104,6 +104,23 @@ header.top p { margin: 2px 0 0; color: var(--chalk-dim); font-size: 13px; }
 .btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .btn { font: inherit; font-weight: 700; cursor: pointer; border-radius: 999px; padding: 10px 22px; border: 2px solid var(--chalk); background: transparent; color: var(--chalk); }
 .btn.main { background: var(--gold); border-color: var(--gold); color: #23302a; }
+.tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tab { font: inherit; font-family: var(--f-chalk); font-size: 18px; font-weight: 600; cursor: pointer; color: var(--chalk); background: rgba(0,0,0,.18); border: 2px solid rgba(243,241,231,.3); border-radius: 10px; padding: 6px 0; }
+.tab[aria-selected="true"] { background: var(--chalk); color: #23302a; border-color: var(--chalk); }
+.grades { display: flex; gap: 6px; flex-wrap: wrap; }
+.grade { font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; color: var(--chalk-dim); background: transparent; border: 1.5px solid rgba(243,241,231,.35); border-radius: 999px; padding: 2px 12px; }
+.grade[aria-pressed="true"] { color: #23302a; background: var(--gold); border-color: var(--gold); }
+.tab:focus-visible, .grade:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.mixrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.subj .gb { display: inline-block; font-size: 11px; font-weight: 700; color: #23302a; background: var(--chalk-dim); border-radius: 4px; padding: 0 6px; margin-right: 6px; vertical-align: 2px; }
+.subj.mix { border-style: dashed; }
+.subj b.sm { font-size: 18px; }
+.stat { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; font-size: 13px; color: var(--chalk-dim); margin: 0; }
+.hud .time { font-family: var(--f-chalk); font-size: 20px; color: var(--chalk-dim); }
+.count { font-family: var(--f-chalk); font-size: 96px; font-weight: 600; text-align: center; margin: 40px 0; line-height: 1; }
+.opts.three .opt:last-child { grid-column: 1 / -1; }
+.combo.hot { color: var(--red); }
+.review li.hd { background: none; padding: 0; font-weight: 700; color: var(--chalk); }
 footer { font-size: 12px; color: var(--chalk-dim); text-align: center; }
 </style>
 </head>
@@ -115,18 +132,28 @@ footer { font-size: 12px; color: var(--chalk-dim); text-align: center; }
     <header class="top">
       <img src="../assets/kuro.jpg" alt="クロ先生" width="60" height="60">
       <div>
-        <h1>一問一答タイムアタック</h1>
+        <h1><span style="display:inline-block">一問一答</span><span style="display:inline-block">タイムアタック</span></h1>
         <p>60秒で、何問解ける？</p>
       </div>
     </header>
-    <p class="rule">教科を選ぶとすぐ始まります。正解するとコンボで点が増えます。まちがえると3秒へります。</p>
+    <p class="rule">教科と単元を選ぶと、3秒後にスタート。連続正解でコンボ加点、まちがえると3秒へります。終わったら、まちがえた問題をクロ先生が解説します。</p>
+    <p class="stat" id="stat"></p>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="grades" id="grades"></div>
+    <div class="mixrow" id="mixrow"></div>
     <div class="subjects" id="subjects"></div>
+  </section>
+
+  <section class="board" id="ready" hidden>
+    <p class="unit" id="readyUnit" style="text-align:center"></p>
+    <p class="count" id="count">3</p>
   </section>
 
   <section class="board" id="play" hidden>
     <div class="hud">
       <span class="score" id="score">0</span>
       <span class="combo" id="combo"></span>
+      <span class="time" id="time">60</span>
     </div>
     <div class="timebar" id="timebar"><i id="timefill"></i></div>
     <p class="unit" id="unit"></p>
@@ -154,84 +181,20 @@ footer { font-size: 12px; color: var(--chalk-dim); text-align: center; }
   <footer>記録はこの端末の中だけに保存されます。名前や成績は集めません。</footer>
 </div>
 
+<script src="time-attack-data.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-const rnd = n => Math.floor(Math.random() * n);
-const pick = a => a[rnd(a.length)];
-const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const sgn = n => n < 0 ? "−" + (-n) : String(n);
-const par = n => n < 0 ? "(" + sgn(n) + ")" : String(n);
-
-// Number answers: correct value plus near misses that students typically make.
-function numQ(unit, q, ans, near) {
-  const set = new Set([ans]);
-  for (const v of shuffle(near)) { if (set.size >= 4) break; if (Number.isFinite(v) && Math.abs(v * 10 - Math.round(v * 10)) < 1e-9) set.add(v); }
-  let k = 1;
-  while (set.size < 4) { set.add(ans + (k % 2 ? k : -k)); k++; }
-  return { unit, q, ans: sgn(ans), opts: shuffle([...set]).map(sgn) };
+const { UNITS, pick } = window.TA;
+const SUBJ = { math: "数学", eng: "英語", sci: "理科", soc: "社会" };
+const unitById = id => UNITS.find(u => u.id === id);
+function modeOf(key) {
+  if (key === "all") return { name: "4教科ミックス", gens: UNITS.flatMap(u => u.gen) };
+  if (key.startsWith("mix-")) { const sj = key.slice(4); return { name: SUBJ[sj] + "ミックス", gens: UNITS.filter(u => u.subj === sj).flatMap(u => u.gen) }; }
+  const u = unitById(key); return { name: SUBJ[u.subj] + "・中" + u.grade + "　" + u.name, gens: u.gen };
 }
-const withEx = (q, ex) => (q.ex = ex, q);
-// Pool answers: wrong choices come from other entries of the same list.
-function poolQ(unit, q, ans, pool) {
-  const set = new Set([ans]);
-  for (const v of shuffle(pool)) { if (set.size >= 4) break; set.add(v); }
-  return { unit, q, ans, opts: shuffle([...set]) };
-}
-
-const MATH = [
-  () => { const a = rnd(19) - 9, b = rnd(19) - 9; return withEx(numQ("正負の数", par(a) + " ＋ " + par(b) + " ＝ ？", a + b, [a - b, b - a, -(a + b)]), (a * b >= 0 ? "同じ符号どうしは、絶対値をたして、その符号をつけます。" : "ちがう符号どうしは、絶対値の大きい方から小さい方をひいて、絶対値が大きい方の符号をつけます。")); },
-  () => { const a = rnd(19) - 9, b = rnd(19) - 9; return withEx(numQ("正負の数", par(a) + " − " + par(b) + " ＝ ？", a - b, [a + b, b - a, -a - b]), "ひく数の符号を変えて、たし算にします。" + par(a) + " ＋ " + par(-b) + " ＝ " + sgn(a - b)); },
-  () => { const a = rnd(17) - 8 || 3, b = rnd(17) - 8 || -4; return withEx(numQ("正負の数", par(a) + " × " + par(b) + " ＝ ？", a * b, [-a * b, a + b, a * b + (a > 0 ? 1 : -1)]), "かけ算は、同じ符号なら＋、ちがう符号なら−。" + Math.abs(a) + "×" + Math.abs(b) + "＝" + Math.abs(a * b)); },
-  () => { const a = 2 + rnd(5), s = pick([-1, 1]); return withEx(numQ("累乗", (s < 0 ? "−" : "") + a + "² ＝ ？", s * a * a, [-s * a * a, s * 2 * a, s * (a * a + a)]), (s < 0 ? "−" + a + "² は −(" + a + "×" + a + ")。−は計算のあとにつけます。" : a + "² ＝ " + a + "×" + a + "（" + a + "×2 ではありません）")); },
-  () => { const a = 2 + rnd(7), b = 1 + rnd(8); const x = rnd(11) - 5, c = a * x + b; return withEx(numQ("一次方程式", a + "x ＋ " + b + " ＝ " + sgn(c) + "　x ＝ ？", x, [-x, x + 1, (c + b) / a]), "+" + b + " を移項すると " + a + "x ＝ " + sgn(c) + " − " + b + " ＝ " + sgn(c - b) + "。両辺を " + a + " でわって x ＝ " + sgn(x)); },
-  () => { const a = 2 + rnd(6), b = 1 + rnd(9); return withEx(poolQ("文字式", a + "(x ＋ " + b + ") を展開すると？", a + "x＋" + a * b, [a + "x＋" + b, "x＋" + a * b, a + "x＋" + (a + b), (a + b) + "x"]), "分配法則：" + a + "×x と " + a + "×" + b + " の両方にかけます。"); },
-  () => { const a = 1 + rnd(8), b = 1 + rnd(8); return withEx(poolQ("文字式", a + "x ＋ " + b + "x ＝ ？", (a + b) + "x", [(a * b) + "x", (a + b) + "x²", (a + b) + "", Math.abs(a - b) + "x"]), "x の係数どうしをたします。" + a + "＋" + b + "＝" + (a + b) + "。x² にはなりません。"); },
-  () => { const n = 2 + rnd(12); return withEx(numQ("平方根", "√" + n * n + " ＝ ？", n, [n * 2, n + 1, n - 1, Math.round(n * n / 2)]), n + "×" + n + "＝" + n * n + " なので、√" + n * n + "＝" + n); },
-  () => { const x = 2 + rnd(5), k = 2 + rnd(5); return withEx(numQ("比例", "y は x に比例し、x＝" + x + " のとき y＝" + k * x + "。比例定数は？", k, [k * x, x, k + 1]), "y＝ax の a が比例定数。a＝y÷x＝" + k * x + "÷" + x + "＝" + k); },
-  () => { const n = pick([5, 6, 8, 9, 10, 12]); return withEx(numQ("図形", "正" + n + "角形の内角の和は何度？", 180 * (n - 2), [180 * n, 180 * (n - 1), 360]), "n角形の内角の和は 180°×(n−2)。180×" + (n - 2) + "＝" + 180 * (n - 2) + "°"); }
-];
-
-const VERBS = [["go","went"],["come","came"],["see","saw"],["eat","ate"],["take","took"],["make","made"],["get","got"],["give","gave"],["know","knew"],["think","thought"],["buy","bought"],["bring","brought"],["teach","taught"],["catch","caught"],["write","wrote"],["read","read"],["run","ran"],["swim","swam"],["sing","sang"],["speak","spoke"],["tell","told"],["say","said"],["find","found"],["leave","left"],["feel","felt"],["meet","met"],["sit","sat"],["stand","stood"],["begin","began"],["drink","drank"],["have","had"],["do","did"],["send","sent"],["lose","lost"],["sleep","slept"],["build","built"],["break","broke"],["choose","chose"],["fly","flew"],["draw","drew"]];
-const PP = [["go","gone"],["come","come"],["see","seen"],["eat","eaten"],["take","taken"],["write","written"],["speak","spoken"],["give","given"],["know","known"],["do","done"],["make","made"],["build","built"],["break","broken"],["sing","sung"],["swim","swum"],["begin","begun"],["choose","chosen"],["fly","flown"],["draw","drawn"],["find","found"]];
-const WORDS = [["library","図書館"],["hospital","病院"],["station","駅"],["museum","博物館"],["weather","天気"],["season","季節"],["country","国"],["language","言語"],["future","未来"],["history","歴史"],["science","理科"],["question","質問"],["answer","答え"],["important","大切な"],["difficult","難しい"],["famous","有名な"],["interesting","おもしろい"],["popular","人気のある"],["beautiful","美しい"],["useful","役に立つ"],["borrow","借りる"],["remember","覚えている"],["forget","忘れる"],["decide","決める"],["arrive","着く"]];
-const COMP = [["big","bigger"],["tall","taller"],["long","longer"],["old","older"],["hot","hotter"],["easy","easier"],["busy","busier"],["large","larger"],["good","better"],["many","more"],["bad","worse"],["fast","faster"]];
-const ENG = [
-  () => { const [v, p] = pick(VERBS); const wrong = [v + "ed", v.replace(/e$/, "") + "ed", ...VERBS.map(x => x[1])].filter(x => x !== p); return withEx(poolQ("不規則動詞", v + " の過去形は？", p, [...new Set(wrong)]), v + " は不規則動詞で、過去形は " + p + "。-ed はつけません。"); },
-  () => { const [v, p] = pick(PP); const past = VERBS.find(x => x[0] === v); return withEx(poolQ("過去分詞", v + " の過去分詞は？", p, [past ? past[1] : v + "ed", v + "ed", v + "en", ...PP.map(x => x[1])].filter(x => x !== p)), v + " の過去分詞は " + p + "。現在完了や受け身で使います。"); },
-  () => { const [e, j] = pick(WORDS); return withEx(poolQ("英単語", e + " の意味は？", j, WORDS.map(x => x[1])), e + " ＝ " + j); },
-  () => { const [e, j] = pick(WORDS); return withEx(poolQ("英単語", "「" + j + "」を英語で？", e, WORDS.map(x => x[0])), j + " ＝ " + e); },
-  () => { const [a, c] = pick(COMP); return withEx(poolQ("比較級", a + " の比較級は？", c, [a + "er", "more " + a, a + a.slice(-1) + "er", a.replace(/y$/, "i") + "est", a + "est"].filter(x => x !== c)), ({ good: "good は形が変わる語：good − better − best", many: "many は形が変わる語：many − more − most", bad: "bad は形が変わる語：bad − worse − worst", hot: "hot は t を重ねて hotter", big: "big は g を重ねて bigger", easy: "y を i にかえて easier", busy: "y を i にかえて busier", large: "e で終わる語は r だけつけて larger" })[a] || a + " に -er をつけて " + c); }
-];
-
-const ELEM = [["水素","H"],["炭素","C"],["窒素","N"],["酸素","O"],["ナトリウム","Na"],["マグネシウム","Mg"],["アルミニウム","Al"],["硫黄","S"],["塩素","Cl"],["カリウム","K"],["カルシウム","Ca"],["鉄","Fe"],["銅","Cu"],["亜鉛","Zn"],["銀","Ag"],["金","Au"],["ヘリウム","He"],["ケイ素","Si"],["リン","P"],["バリウム","Ba"]];
-const FORM = [["水","H₂O"],["二酸化炭素","CO₂"],["酸素","O₂"],["水素","H₂"],["窒素","N₂"],["塩化ナトリウム","NaCl"],["アンモニア","NH₃"],["酸化銅","CuO"],["硫化鉄","FeS"],["酸化マグネシウム","MgO"],["塩化水素","HCl"],["水酸化ナトリウム","NaOH"]];
-const UNITS = [["力","N"],["電流","A"],["電圧","V"],["抵抗","Ω"],["電力","W"],["圧力","Pa"],["仕事","J"],["周波数","Hz"]];
-const SCI = [
-  () => { const [n, s] = pick(ELEM); return withEx(poolQ("元素記号", n + " の元素記号は？", s, ELEM.map(x => x[1])), n + " ＝ " + s); },
-  () => { const [n, s] = pick(ELEM); return withEx(poolQ("元素記号", s + " は何の元素？", n, ELEM.map(x => x[0])), s + " ＝ " + n); },
-  () => { const [n, f] = pick(FORM); return withEx(poolQ("化学式", n + " の化学式は？", f, FORM.map(x => x[1])), n + " ＝ " + f); },
-  () => { const [n, u] = pick(UNITS); return withEx(poolQ("単位", n + " の単位は？", u, UNITS.map(x => x[1])), n + " の単位は " + u); },
-  () => { const r = pick([2, 4, 5, 10, 20]), i = pick([0.5, 1, 2, 3]); return withEx(numQ("オームの法則", "抵抗 " + r + "Ω に " + i + "A 流れた。電圧は何V？", r * i, [r / i, r + i, r * i * 2]), "電圧＝抵抗×電流。" + r + "×" + i + "＝" + r * i + "V"); },
-  () => { const m = pick([100, 200, 300, 500]), a = pick([2, 4, 5, 10]); return withEx(numQ("圧力", "重さ " + m + "N の物体が " + a + "m² の面を押す。圧力は何Pa？", m / a, [m * a, m / a * 10, m - a]), "圧力＝力÷面積。" + m + "÷" + a + "＝" + m / a + "Pa"); }
-];
-
-const PREF = [["北海道","札幌市"],["岩手県","盛岡市"],["宮城県","仙台市"],["茨城県","水戸市"],["栃木県","宇都宮市"],["群馬県","前橋市"],["埼玉県","さいたま市"],["神奈川県","横浜市"],["石川県","金沢市"],["山梨県","甲府市"],["愛知県","名古屋市"],["三重県","津市"],["滋賀県","大津市"],["兵庫県","神戸市"],["島根県","松江市"],["香川県","高松市"],["愛媛県","松山市"],["沖縄県","那覇市"],["青森県","青森市"],["秋田県","秋田市"],["静岡県","静岡市"],["福岡県","福岡市"],["鹿児島県","鹿児島市"],["広島県","広島市"]];
-const ERA = [["鎌倉幕府を開いた人物","源頼朝"],["室町幕府を開いた人物","足利尊氏"],["江戸幕府を開いた人物","徳川家康"],["十七条の憲法を定めた人物","聖徳太子"],["大化の改新の中心人物","中大兄皇子"],["平治の乱のあと太政大臣になった人物","平清盛"],["刀狩を行った人物","豊臣秀吉"],["楽市・楽座を行った人物","織田信長"],["大日本帝国憲法の草案づくりの中心人物","伊藤博文"],["「学問のすゝめ」を書いた人物","福沢諭吉"]];
-const WORLD = [["世界でいちばん面積が大きい大陸","ユーラシア大陸"],["世界でいちばん広い海洋","太平洋"],["本初子午線が通る国の首都","ロンドン"],["日本の標準時子午線（東経135度）が通る市","明石市"],["日本でいちばん長い川","信濃川"],["日本でいちばん面積が大きい湖","琵琶湖"]];
-const SOC = [
-  () => { const [p, c] = pick(PREF); return withEx(poolQ("都道府県庁所在地", p + " の県庁所在地は？", c, PREF.map(x => x[1])), p + " の県庁所在地は " + c); },
-  () => { const [p, c] = pick(PREF.slice(0, 18)); return withEx(poolQ("都道府県庁所在地", c + " が県庁所在地なのは？", p, PREF.map(x => x[0])), c + " は " + p + " の県庁所在地"); },
-  () => { const [q, a] = pick(ERA); return withEx(poolQ("歴史の人物", q + "は？", a, ERA.map(x => x[1])), q + "は " + a); },
-  () => { const [q, a] = pick(WORLD); const alt = { "ユーラシア大陸": ["アフリカ大陸","北アメリカ大陸","南アメリカ大陸"], "太平洋": ["大西洋","インド洋","北極海"], "ロンドン": ["パリ","ベルリン","ローマ"], "明石市": ["神戸市","姫路市","大阪市"], "信濃川": ["利根川","石狩川","北上川"], "琵琶湖": ["霞ヶ浦","猪苗代湖","浜名湖"] }[a]; return withEx(poolQ("地理", q + "は？", a, alt), q + "は " + a); }
-];
-
-const SUBJECTS = {
-  math: { name: "数学", sub: "正負の数・方程式・平方根など", gen: MATH },
-  eng: { name: "英語", sub: "不規則動詞・単語・比較級", gen: ENG },
-  sci: { name: "理科", sub: "元素記号・化学式・単位・計算", gen: SCI },
-  soc: { name: "社会", sub: "県庁所在地・歴史の人物・地理", gen: SOC },
-  mix: { name: "ミックス", sub: "4教科からランダム", gen: [...MATH, ...ENG, ...SCI, ...SOC] }
-};
+let tab = "math", gradeF = 0;
+try { const v = JSON.parse(localStorage.getItem("kurolab-time-attack-ui") || "{}"); if (SUBJ[v.tab]) tab = v.tab; if ([0, 1, 2, 3].includes(v.grade)) gradeF = v.grade; } catch (e) {}
+const saveUi = () => { try { localStorage.setItem("kurolab-time-attack-ui", JSON.stringify({ tab, grade: gradeF })); } catch (e) {} };
 
 const KEY = "kurolab-time-attack-v1";
 let best = {};
@@ -239,72 +202,95 @@ try { best = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { 
 const saveBest = () => { try { localStorage.setItem(KEY, JSON.stringify(best)); } catch (e) {} };
 
 const LIMIT = 60000, PENALTY = 3000;
-let S = null, timer = 0;
+let S = null, timer = 0, cdTimer = 0;
 
-function show(id) { for (const s of ["home", "play", "end"]) $(s).hidden = s !== id; }
+function show(id) { for (const s of ["home", "ready", "play", "end"]) $(s).hidden = s !== id; window.scrollTo({ top: 0 }); }
+function btn(cls, html, onclick) { const b = document.createElement("button"); b.className = cls; b.innerHTML = html; b.onclick = onclick; return b; }
+const bestTxt = k => best[k] ? "ベスト " + best[k] + "点" : "まだ記録なし";
 
 function renderHome() {
-  $("subjects").innerHTML = "";
-  for (const [k, v] of Object.entries(SUBJECTS)) {
-    const b = document.createElement("button");
-    b.className = "subj";
-    b.innerHTML = "<b>" + v.name + "</b><span>" + v.sub + "</span><em>" + (best[k] ? "ベスト " + best[k] + "点" : "まだ記録なし") + "</em>";
-    b.onclick = () => start(k);
-    $("subjects").append(b);
+  let qTypes = 0; for (const u of UNITS) qTypes += u.gen.length;
+  $("stat").textContent = "4教科・" + UNITS.length + "単元・問題パターン" + qTypes + "種類（計算問題は毎回ちがう数字が出ます）";
+  $("tabs").innerHTML = "";
+  for (const [k, v] of Object.entries(SUBJ)) {
+    const t = btn("tab", v, () => { tab = k; saveUi(); renderHome(); });
+    t.setAttribute("role", "tab"); t.setAttribute("aria-selected", String(k === tab));
+    $("tabs").append(t);
   }
+  $("grades").innerHTML = "";
+  [[0, "全学年"], [1, "中1"], [2, "中2"], [3, "中3"]].forEach(([g, l]) => {
+    const b = btn("grade", l, () => { gradeF = g; saveUi(); renderHome(); });
+    b.setAttribute("aria-pressed", String(g === gradeF));
+    $("grades").append(b);
+  });
+  $("mixrow").innerHTML = "";
+  $("mixrow").append(
+    btn("subj mix", "<b class='sm'>" + SUBJ[tab] + "ミックス</b><span>" + SUBJ[tab] + "の全単元から</span><em>" + bestTxt("mix-" + tab) + "</em>", () => ready("mix-" + tab)),
+    btn("subj mix", "<b class='sm'>4教科ミックス</b><span>全" + UNITS.length + "単元から</span><em>" + bestTxt("all") + "</em>", () => ready("all")));
+  $("subjects").innerHTML = "";
+  for (const u of UNITS.filter(u => u.subj === tab && (!gradeF || u.grade === gradeF)))
+    $("subjects").append(btn("subj", "<b class='sm'><span class='gb'>中" + u.grade + "</span>" + u.name + "</b><em>" + bestTxt(u.id) + "</em>", () => ready(u.id)));
   show("home");
+}
+
+function ready(key) {
+  const m = modeOf(key);
+  S = { key, gens: m.gens, name: m.name, score: 0, combo: 0, maxCombo: 0, right: 0, wrong: 0, missed: [], over: false, last: "" };
+  $("readyUnit").textContent = m.name;
+  show("ready");
+  let n = 3; $("count").textContent = n;
+  clearInterval(cdTimer);
+  cdTimer = setInterval(() => { n--; if (n > 0) $("count").textContent = n; else { clearInterval(cdTimer); start(); } }, 700);
 }
 
 function nextQ() {
   let q, tries = 0;
-  do { q = pick(SUBJECTS[S.subj].gen)(); tries++; } while (S.last === q.q && tries < 5);
-  S.last = q.q; S.cur = q; S.locked = false;
+  do { q = pick(S.gens)(); tries++; } while (S.last === q.q && tries < 8);
+  S.last = q.q; S.cur = q; S.locked = false; S.shown = performance.now();
   $("unit").textContent = q.unit;
   $("q").textContent = q.q;
   $("opts").innerHTML = "";
-  for (const o of q.opts) {
-    const b = document.createElement("button");
-    b.className = "opt"; b.textContent = o;
-    b.onclick = () => answer(b, o);
-    $("opts").append(b);
-  }
+  $("opts").classList.toggle("three", q.opts.length === 3);
+  q.opts.forEach(o => { const b = btn("opt", "", () => answer(b, o)); b.textContent = o; $("opts").append(b); });
 }
 
-function answer(btn, o) {
+function answer(b, o) {
   if (S.locked || S.over) return;
   S.locked = true;
-  const q = S.cur;
-  if (o === q.ans) {
-    S.combo++; S.right++;
-    const gain = 10 + Math.min(S.combo - 1, 5) * 2;
+  const q = S.cur, ok = o === q.ans;
+  if (ok) {
+    S.combo++; S.right++; S.maxCombo = Math.max(S.maxCombo, S.combo);
+    const fast = performance.now() - S.shown < 2500 ? 3 : 0;
+    const gain = 10 + Math.min(S.combo - 1, 5) * 2 + fast;
     S.score += gain;
-    btn.classList.add("ok");
-    $("flash").className = "flash ok"; $("flash").textContent = "せいかい！ +" + gain;
+    b.classList.add("ok");
+    $("flash").className = "flash ok"; $("flash").textContent = "せいかい！ +" + gain + (fast ? "（はやい！）" : "");
   } else {
     S.combo = 0; S.wrong++;
     S.end -= PENALTY;
     S.missed.push(q);
-    btn.classList.add("ng");
-    for (const b of $("opts").children) if (b.textContent === q.ans) b.classList.add("ok");
+    b.classList.add("ng");
+    for (const x of $("opts").children) if (x.textContent === q.ans) x.classList.add("ok");
     $("flash").className = "flash ng"; $("flash").textContent = "ざんねん　−3秒";
   }
   $("score").textContent = S.score;
   $("combo").textContent = S.combo >= 2 ? S.combo + " コンボ！" : "";
-  setTimeout(() => { if (!S.over) nextQ(); }, o === q.ans ? 250 : 900);
+  $("combo").classList.toggle("hot", S.combo >= 6);
+  setTimeout(() => { if (!S.over) nextQ(); }, ok ? 250 : 1000);
 }
 
 function tick() {
   if (!S || S.over) return;
   const left = S.end - performance.now();
-  const r = Math.max(0, left / LIMIT);
-  $("timefill").style.transform = "scaleX(" + r + ")";
+  $("timefill").style.transform = "scaleX(" + Math.max(0, left / LIMIT) + ")";
   $("timebar").classList.toggle("low", left < 10000);
+  $("time").textContent = Math.max(0, Math.ceil(left / 1000));
   if (left <= 0) return finish();
   timer = requestAnimationFrame(tick);
 }
 
-function start(k) {
-  S = { subj: k, score: 0, combo: 0, right: 0, wrong: 0, missed: [], over: false, last: "", end: performance.now() + LIMIT };
+function start() {
+  S.end = performance.now() + LIMIT;
   $("score").textContent = "0"; $("combo").textContent = ""; $("flash").textContent = "";
   show("play");
   nextQ();
@@ -312,35 +298,36 @@ function start(k) {
   timer = requestAnimationFrame(tick);
 }
 
-const RANKS = [[300, "職員室の伝説", "ここまで来るとクロ先生もびっくりです。友だちに挑戦状を出してみましょう。"], [200, "学年トップクラス", "スピードも正確さも十分。コンボを切らさないのが次の課題です。"], [120, "なかなかの実力", "いい調子です。まちがえた問題を見直すと、すぐに点が伸びます。"], [60, "準備運動完了", "慣れると一気に伸びます。下のまちがい直しを見てから、もう一回。"], [0, "まずは一歩", "最初はみんなこんなものです。ゆっくりでも正解を重ねるとコンボになります。"]];
+const RANKS = [[400, "職員室の伝説", "ここまで来るとクロ先生もびっくりです。友だちに挑戦状を出してみましょう。"], [280, "学年トップクラス", "スピードも正確さも十分。コンボを切らさないのが次の課題です。"], [160, "なかなかの実力", "いい調子です。まちがえた問題を見直すと、すぐに点が伸びます。"], [80, "準備運動完了", "慣れると一気に伸びます。下のまちがい直しを読んでから、もう一回。"], [0, "まずは一歩", "最初はみんなこんなものです。ゆっくりでも正解を重ねるとコンボになります。"]];
 
 function finish() {
   S.over = true;
   cancelAnimationFrame(timer);
-  const isNew = S.score > (best[S.subj] || 0);
-  if (isNew) { best[S.subj] = S.score; saveBest(); }
+  const k = S.key, isNew = S.score > (best[k] || 0);
+  if (isNew) { best[k] = S.score; saveBest(); }
   const [, rank, say] = RANKS.find(r => S.score >= r[0]);
-  $("endSubj").textContent = SUBJECTS[S.subj].name + "の結果";
+  const n = S.right + S.wrong, acc = n ? Math.round(S.right / n * 100) : 0;
+  $("endSubj").textContent = S.name + "の結果";
   $("endScore").textContent = S.score + "点";
   $("endRank").textContent = rank;
-  $("endMeta").textContent = "正解 " + S.right + "問 ／ まちがい " + S.wrong + "問 ／ ベスト " + best[S.subj] + "点";
+  $("endMeta").textContent = "正解 " + S.right + "問 ／ まちがい " + S.wrong + "問 ／ 正答率 " + acc + "% ／ 最大 " + S.maxCombo + "コンボ ／ ベスト " + best[k] + "点";
   $("endNew").hidden = !(isNew && S.score > 0);
-  $("endSay").textContent = "クロ先生：" + say;
+  $("endSay").textContent = "クロ先生：" + (S.wrong === 0 && S.right > 0 ? "まちがいゼロ！すばらしい。次はスピードを上げてコンボを伸ばしましょう。" : say);
   $("review").innerHTML = "";
   const seen = new Set();
-  if (S.missed.length) { const h = document.createElement("li"); h.style.background = "none"; h.style.padding = "0"; h.textContent = "まちがい直し"; $("review").append(h); }
+  if (S.missed.length) { const h = document.createElement("li"); h.className = "hd"; h.textContent = "まちがい直し（クロ先生の解説つき）"; $("review").append(h); }
   for (const q of S.missed) {
     if (seen.has(q.q)) continue; seen.add(q.q);
     const li = document.createElement("li");
     li.append(q.q.replace(/は？$/, "").replace(/[　 ]*[＝=]?[　 ]*？$/, "") + "　→　");
     const b = document.createElement("b"); b.textContent = q.ans; li.append(b);
-    if (q.ex) { const p = document.createElement("small"); p.textContent = "クロ先生のひとこと：" + q.ex; li.append(p); }
+    if (q.ex) { const p = document.createElement("small"); p.textContent = "クロ先生：" + q.ex; li.append(p); }
     $("review").append(li);
   }
   show("end");
 }
 
-$("again").onclick = () => start(S.subj);
+$("again").onclick = () => ready(S.key);
 $("toHome").onclick = renderHome;
 document.addEventListener("keydown", e => {
   if ($("play").hidden || !S || S.locked) return;
