@@ -232,15 +232,15 @@ SAKU.push(["資料を読んで意見を書く", 2, r => {
   const bar = `<div class="sbars">${T.rows.map(([l, v]) => `<div class="sb"><span class="sl">${l}</span><span class="sv" style="width:${v * 2.4}px"></span><span class="sn">${v}人</span></div>`).join("")}</div>`;
   return {
     unit: "saku", title: `作文（${T.title}）`,
-    lead: `次の資料は、クロラボが作った<b>架空の調査</b>の結果である。資料を読んで、「${T.theme}」について、あとの条件にしたがって作文を書きなさい。`,
-    fig: tcap(T.q) + bar + `<div class="chu"><span>【条件】①二段落で書くこと。②第一段落には、資料から読みとったことを書くこと。③第二段落には、第一段落をふまえて、あなたの考えを具体例（自分の体験や見聞きしたこと）をあげて書くこと。④百六十字以上、二百字以内で書くこと。⑤原稿用紙の正しい使い方にしたがうこと。</span></div>`,
+    lead: `次の資料は、クロラボが作った<b>架空の調査</b>の結果である。資料を読んで、「${T.theme}」について、あとの条件にしたがって作文を書きなさい。<div class="chu"><span>【条件】</span><span>①二段落で書くこと。</span><span>②第一段落には、資料から読みとったことを書くこと。</span><span>③第二段落には、第一段落をふまえて、あなたの考えを具体例（自分の体験や見聞きしたこと）をあげて書くこと。</span><span>④百六十字以上、二百字以内で書くこと。</span><span>⑤原稿用紙の正しい使い方にしたがうこと。</span></div>`,
+    fig: tcap(T.q) + bar,
     items: [K.desc("条件にしたがって作文を書きなさい。", `（採点の目安）第一段落で資料の数値や順位にふれている（例：「${T.rows[0][0]}」がもっとも多い）。第二段落で、自分の考えと具体例が書かれている。二段落構成・字数・原稿用紙の使い方が守られている。`, "資料の読み取り・考え・具体例・構成・字数で評価。", "", { wide: true, essay: true, w: 7 })],
     keepAll: true
   };
 }]);
 
 /* ===================================================================== */
-register("jpn2", { name: "中学2年 国語", grade: 2, minutes: 50, units: { kanji: "漢字・語句", setsu: "説明的文章", bun: "文学的文章", koten: "古典（古文・漢詩）", gram: "文法", saku: "作文" }, defaults: { kanji: 1, setsu: 1, bun: 1, koten: 1, gram: 1, saku: 0 } }, ({ add }) => {
+register("jpn2", { name: "中学2年 国語", grade: 2, minutes: 50, tate: true, units: { kanji: "漢字・語句", setsu: "説明的文章", bun: "文学的文章", koten: "古典（古文・漢詩）", gram: "文法", saku: "作文" }, defaults: { kanji: 1, setsu: 1, bun: 1, koten: 1, gram: 1, saku: 0 } }, ({ add }) => {
   // 国語は本文が決まっているので、難易度の切りかえに関係なくすべての大問から出題する（lv 0）
   for (const [list, u] of [[SETSU, "setsu"], [BUN, "bun"], [KOTEN, "koten"], [SAKU, "saku"]]) for (const [name, , f] of list) add(u, name, f, { lv: 0 });
   for (const [name, , f] of GRAM) add(name.startsWith("漢字") ? "kanji" : "gram", name, f, { lv: 0 });

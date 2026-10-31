@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="../assets/favicon.png">
 <title>定期テスト自動作成</title>
-<meta name="ver" content="3">
+<meta name="ver" content="4">
 <meta name="description" content="単元を選ぶだけで、100点満点の定期テスト・単元テストを自動作成。解答用紙・解答と解説つき、A4で印刷できます。中学1年〜3年の理科、中2英語（リスニングつき）など。クロラボのオリジナル問題です。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Noto+Serif+JP:wght@400;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
 /* Layout: a settings panel (screen only) above a stack of A4 "paper" sheets: 問題 → 解答用紙 → 解答・解説. Printing hides the panel and breaks pages per sheet. */
 :root {
@@ -102,14 +102,14 @@ body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-heig
 .passage .pn { font-family: var(--f-body); font-size: 12px; margin-right: 4px; }
 .passage .bl { display: inline-block; min-width: 3em; border-bottom: 1px solid #111; text-align: center; font-family: var(--f-body); font-size: 12px; text-indent: 0; }
 .passage u, .lead u { text-underline-offset: 3px; }
-.passage.jp { font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; font-size: 14.5px; line-height: 2; }
+.passage.jp { font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "Klee One", serif; font-size: 14.5px; line-height: 2; }
 .passage.jp p { margin-bottom: 2px; }
 .passage.kanshi { display: block; width: fit-content; padding: 8px 22px; letter-spacing: .25em; line-height: 1.8; }
 .passage.kanshi p { text-indent: 0; } .passage.kanshi .kt { font-weight: 700; letter-spacing: .1em; }
 .chu { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 11.5px; color: #333; margin: -2px 0 8px; }
 .sbars { display: grid; gap: 4px; margin: 6px 0; font-size: 12.5px; }
 .sbars .sb { display: flex; align-items: center; gap: 8px; } .sbars .sl { width: 15em; text-align: right; }
-.sbars .sv { height: 14px; background: #8fb3d9; border: 1px solid #3c6e9e; } .sbars .sn { font-size: 12px; }
+.sbars .sv { height: 14px; background: #8fb3d9; border: 1px solid #3c6e9e; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .sbars .sn { font-size: 12px; }
 .ans-grid .cell.essay { min-height: 0; }
 .ans-grid .cell.essay { display: block; } .genko { display: block; margin: 20px auto 6px; max-width: 100%; height: auto; }
 .en-q { font-family: "Times New Roman", serif; font-size: 15px; }
@@ -133,8 +133,44 @@ body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-heig
 .foot { font-family: var(--f-body); font-size: 10px; color: #777; text-align: right; margin-top: 12px; }
 @media (max-width: 600px) { .sheet { padding: 22px 16px; } .ans-grid { grid-template-columns: 1fr; } .namebar { grid-template-columns: 1fr 1fr; } }
 
+/* 国語の縦書き（A4横・右から左へ） */
+.sheet.tate { max-width: none; width: fit-content; padding: 24px; overflow-x: auto; }
+.tpage { writing-mode: vertical-rl; width: 273mm; height: 186mm; overflow: hidden; font-size: 14.5px; line-height: 1.8; margin-left: auto; }
+.tpage > * { margin: 0 0 0 8px; }
+.tpage .thead h2 { font-size: 21px; text-align: start; margin: 0 0 0 6px; letter-spacing: .1em; }
+.tpage .thead .sub { text-align: start; font-size: 12.5px; margin: 0 0 0 10px; }
+.tpage .vname { display: inline-flex; flex-direction: column; border: 1.5px solid #111; margin: 0 0 0 16px; font-size: 13px; }
+.tpage .vname div { border-bottom: 1px solid #111; padding: 6px 4px; }
+.tpage .vname div:last-child { border-bottom: 0; }
+.tpage .vname .nm { flex: 1; min-height: 10em; }
+.tpage h3.th { font-family: var(--f-body); font-size: 15.5px; border-right: 2px solid #111; padding: 0 6px 0 0; margin: 0 0 0 10px; }
+.tpage h3.th .num { display: inline-block; border: 1.5px solid #111; padding: 2px 3px; margin-bottom: 6px; }
+.tpage h3.th .pts { font-size: 12px; font-weight: 400; margin-top: 10px; }
+.tpage .tlead { margin-left: 6px; }
+.tpage .tp { font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "Klee One", serif; font-size: 15px; line-height: 2.05; text-indent: 1em; }
+.tpage .tp.nb { text-indent: 0; }
+.tpage .tp .pn { font-size: 11px; margin-bottom: 2px; text-indent: 0; }
+.tpage .tpbox-start { border-right: 1px solid #555; padding-right: 8px; }
+.tpage .tpbox-end { border-left: 1px solid #555; padding-left: 8px; margin-left: 14px; }
+.tpage .chu { display: block; font-size: 12px; margin: 0 0 0 10px; }
+.tpage .chu span { display: block; }
+.tpage .titem { display: flex; gap: 6px; }
+.tpage .titem .n { font-family: var(--f-body); font-weight: 700; }
+.tpage .titem .ch { display: block; padding: 0; margin: 1em 0 0 0; }
+.tpage .titem .ch span { display: block; }
+.tpage .titem .chs { margin-right: 4px; }
+.tpage u { text-decoration-thickness: 1px; text-underline-position: right; text-underline-offset: 3px; }
+.tpage .tcy { text-combine-upright: all; }
+.tpage .upr { text-orientation: upright; }
+.tpage .horiz { writing-mode: horizontal-tb; width: max-content; max-width: 160mm; margin: 0 0 0 12px; font-size: 13px; }
+.tpage .horiz .sbars .sl { width: 12em; }
+.tpage .kanshi { margin: 0 0 0 12px; border: 1px solid #555; padding: 12px 6px; letter-spacing: .2em; display: block; width: auto; }
+.tpage .kanshi p { margin: 0 0 0 6px; text-indent: 0; }
+.tpage .foot { font-size: 11px; margin: 0; align-self: flex-end; }
 @media print {
   @page { size: A4; margin: 12mm; }
+  @page tate { size: A4 landscape; margin: 12mm; }
+  .sheet.tate { page: tate; padding: 0; overflow: visible; width: auto; }
   html, body { background: #fff; }
   .wrap { max-width: none; padding: 0; }
   .panel, .back, .summary, .noprint { display: none !important; }
@@ -307,7 +343,7 @@ function build(seed) {
   });
   allot(dqs.flatMap(g => g.items));
   const units = [...new Set(chosen.map(t => t.unit))];
-  return { seed, title: $("title").value || "テスト", name: d.name, grade: d.grade || 1, minutes: d.minutes || 50, units: units.map(u => d.units[u]), dqs, mode: m };
+  return { seed, tate: !!d.tate, title: $("title").value || "テスト", name: d.name, grade: d.grade || 1, minutes: d.minutes || 50, units: units.map(u => d.units[u]), dqs, mode: m };
 }
 
 const choicesHtml = it => it.pics ? `<div class="ch pics">${it.pics.join("")}</div>` : it.choices ? `<div class="ch${it.choices.every(c => c.length <= 18) ? " two" : ""}">${it.choices.map(c => `<span>${it.chHtml ? c : esc(c)}</span>`).join("")}</div>` : "";
@@ -327,7 +363,7 @@ function render(T) {
   const qHtml = T.dqs.map((g, gi) => `<section class="dq"><h3><span class="num">${gi + 1}</span>${esc(g.title)}<span class="pts">（${g.items.reduce((a, it) => a + it.pts, 0)}点）</span></h3>
     <div class="intro">${g.script ? `<p class="listen-note">放送を聞いて答える問題です。英文はそれぞれ2回読まれます。放送中にメモをとってもかまいません。</p>` : ""}<div class="lead">${g.lead}</div>${g.fig ? `<div class="fig">${g.fig}</div>` : ""}</div>
     <ol class="items">${g.items.map((it, i) => `<li><span class="n">(${i + 1})</span><div>${qText(it)}${it.type === "order" ? "（記号で答えなさい）" : ""}${choicesHtml(it)}</div></li>`).join("")}</ol></section>`).join("");
-  let html = `<article class="sheet">${head("")}${nameBar}${qHtml}<p class="foot">クロ先生のAI職員室　定期テスト自動作成　テスト番号 ${T.seed}</p></article>`;
+  let html = T.tate ? `<div id="tateHost"></div>` : `<article class="sheet">${head("")}${nameBar}${qHtml}<p class="foot">クロ先生のAI職員室　定期テスト自動作成　テスト番号 ${T.seed}</p></article>`;
   if ($("optSheet").checked) {
     html += `<article class="sheet">${head("　解答用紙")}${nameBar}${T.dqs.map((g, gi) => `<p class="ans-head">${gi + 1}　${esc(g.title)}</p><div class="ans-grid">${g.items.map((it, i) => `<div class="cell${it.type === "desc" || it.wide || (it.type === "word" && it.ans.length > 14) ? " wide" : ""}${it.essay ? " essay" : ""}"><span>(${i + 1})</span><span class="p">${it.pts}点</span>${it.essay ? genko() : ""}</div>`).join("")}</div>`).join("")}<p class="foot">テスト番号 ${T.seed}</p></article>`;
   }
@@ -337,7 +373,64 @@ function render(T) {
   const sc = scriptHtml(T);
   if (sc) html += `<article class="sheet">${head("　リスニング放送台本")}<p class="listen-note">先生用です。下の「放送する」ボタンでパソコンに読み上げさせることもできます（英語の音声が入っている端末で動きます）。読み上げのかわりに、先生が台本を2回ずつ読んでもかまいません。</p>${sc}<p class="foot">テスト番号 ${T.seed}</p></article>`;
   $("out").innerHTML = html;
+  // 縦書きの教科は、印刷をすべて A4 横にする（Chrome は1ページ目の幅で全体の縮小率を決めるため）
+  let ts = $("tateStyle"); if (!ts) { ts = document.createElement("style"); ts.id = "tateStyle"; document.head.append(ts); }
+  ts.textContent = T.tate ? "@media print { @page { size: A4 landscape; margin: 12mm; } .sheet { max-width: 273mm !important; } }" : "";
+  if (T.tate) tateRender(T);
   setupPlayer(T);
+}
+
+/* ---------- 国語：縦書きの問題用紙（A4横のページに、ブロックを右から順につめていく） ---------- */
+function tcyText(root) {
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement.closest("svg, .horiz") ? NodeFilter.FILTER_REJECT : /[0-9A-Za-z]/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
+  const list = []; while (w.nextNode()) list.push(w.currentNode);
+  for (const n of list) {
+    const frag = document.createDocumentFragment();
+    n.nodeValue.split(/([0-9]{1,2}(?![0-9])|[0-9]{3,}|[A-Za-z]+)/).forEach((t, i) => {
+      if (!t) return;
+      if (i % 2) { const sp = document.createElement("span"); sp.className = /^[0-9]{1,2}$/.test(t) ? "tcy" : "upr"; sp.textContent = t; frag.append(sp); }
+      else frag.append(t);
+    });
+    n.replaceWith(frag);
+  }
+}
+function tateBlocks(T) {
+  const B = [];
+  const vname = `<div class="vname"><div>${T.grade}年　　組　　番</div><div class="nm">氏名</div><div>得点　　　／100</div></div>`;
+  B.push(`<div class="thead"><h2>${esc(T.title)}　${T.name}</h2></div>`, `<p class="sub">${T.minutes}分　／　100点</p>`, vname);
+  T.dqs.forEach((g, gi) => {
+    B.push(`<h3 class="th"><span class="num">${gi + 1}</span>${esc(g.title)}<span class="pts">（${g.items.reduce((a, it) => a + it.pts, 0)}点）</span></h3>`);
+    const tmp = document.createElement("div"); tmp.innerHTML = g.lead;
+    let buf = "";
+    const flush = () => { if (buf.trim()) B.push(`<div class="tlead">${buf}</div>`); buf = ""; };
+    for (const nd of [...tmp.childNodes]) {
+      if (nd.nodeType === 1 && nd.classList.contains("passage") && !nd.classList.contains("kanshi")) {
+        flush();
+        const ps = [...nd.querySelectorAll("p")];
+        ps.forEach((p, i) => B.push(`<div class="tp${p.querySelector(".pn") ? "" : ""}${i === 0 ? " tpbox-start" : ""}${i === ps.length - 1 ? " tpbox-end" : ""}">${p.innerHTML}</div>`));
+      } else if (nd.nodeType === 1 && nd.classList.contains("kanshi")) { flush(); B.push(nd.outerHTML); }
+      else if (nd.nodeType === 1 && nd.classList.contains("chu")) { flush(); B.push(nd.outerHTML); }
+      else buf += nd.nodeType === 1 ? nd.outerHTML : esc(nd.nodeValue);
+    }
+    flush();
+    if (g.fig) B.push(`<div class="horiz">${g.fig}</div>`);
+    g.items.forEach((it, i) => B.push(`<div class="titem"><span class="n">（${i + 1}）</span><div>${qText(it)}${it.choices ? `<div class="ch">${it.choices.map(c => `<span>${it.chHtml ? c : esc(c)}</span>`).join("")}</div>` : ""}</div></div>`));
+  });
+  return B;
+}
+function tateRender(T) {
+  const host = $("tateHost"), blocks = tateBlocks(T);
+  let page = null;
+  const newPage = () => { const a = document.createElement("article"); a.className = "sheet tate"; page = document.createElement("div"); page.className = "tpage"; a.append(page); host.append(a); return page; };
+  newPage();
+  for (const h of blocks) {
+    const t = document.createElement("div"); t.innerHTML = h; const node = t.firstElementChild || t;
+    tcyText(node);
+    page.append(node);
+    if (page.scrollWidth > page.clientWidth + 1 && page.children.length > 1) { node.remove(); newPage(); page.append(node); }
+  }
+  const pages = host.querySelectorAll(".tpage");
+  pages.forEach((p, i) => { const f = document.createElement("p"); f.className = "foot"; f.textContent = `テスト番号 ${T.seed}　（${i + 1}／${pages.length}）`; p.append(f); if (p.scrollWidth > p.clientWidth + 1) f.remove(); });
 }
 
 /* ---------- リスニングの読み上げ（Web Speech API） ---------- */
