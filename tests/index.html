@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="../assets/favicon.png">
 <title>定期テスト自動作成</title>
-<meta name="ver" content="2">
+<meta name="ver" content="3">
 <meta name="description" content="単元を選ぶだけで、100点満点の定期テスト・単元テストを自動作成。解答用紙・解答と解説つき、A4で印刷できます。中学1年〜3年の理科、中2英語（リスニングつき）など。クロラボのオリジナル問題です。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,6 +102,16 @@ body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-heig
 .passage .pn { font-family: var(--f-body); font-size: 12px; margin-right: 4px; }
 .passage .bl { display: inline-block; min-width: 3em; border-bottom: 1px solid #111; text-align: center; font-family: var(--f-body); font-size: 12px; text-indent: 0; }
 .passage u, .lead u { text-underline-offset: 3px; }
+.passage.jp { font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; font-size: 14.5px; line-height: 2; }
+.passage.jp p { margin-bottom: 2px; }
+.passage.kanshi { display: block; width: fit-content; padding: 8px 22px; letter-spacing: .25em; line-height: 1.8; }
+.passage.kanshi p { text-indent: 0; } .passage.kanshi .kt { font-weight: 700; letter-spacing: .1em; }
+.chu { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 11.5px; color: #333; margin: -2px 0 8px; }
+.sbars { display: grid; gap: 4px; margin: 6px 0; font-size: 12.5px; }
+.sbars .sb { display: flex; align-items: center; gap: 8px; } .sbars .sl { width: 15em; text-align: right; }
+.sbars .sv { height: 14px; background: #8fb3d9; border: 1px solid #3c6e9e; } .sbars .sn { font-size: 12px; }
+.ans-grid .cell.essay { min-height: 0; }
+.ans-grid .cell.essay { display: block; } .genko { display: block; margin: 20px auto 6px; max-width: 100%; height: auto; }
 .en-q { font-family: "Times New Roman", serif; font-size: 15px; }
 .listen-note { font-family: var(--f-body); font-size: 12.5px; border: 1px dashed #555; padding: 4px 8px; margin: 0 0 8px; }
 .script .say { margin: 2px 0; }
@@ -201,14 +211,16 @@ const SUBJ = [
   { key: "sci1", label: "中1 理科", file: "sci1.js" },
   { key: "sci2", label: "中2 理科", file: "sci2.js" },
   { key: "sci3", label: "中3 理科", file: "sci3.js" },
-  { soon: true, key: "math2", label: "中2 数学", file: "math2.js" },
+  { key: "math2", label: "中2 数学", file: "math2.js" },
   { key: "eng2", label: "中2 英語（リスニングつき）", file: "eng2.js" },
-  { soon: true, key: "soc2", label: "中2 社会", file: "soc2.js" },
-  { soon: true, key: "jpn2", label: "中2 国語", file: "jpn2.js" }
+  { key: "soc2", label: "中2 社会", file: "soc2.js" },
+  { key: "jpn2", label: "中2 国語", file: "jpn2.js" }
 ];
 
 function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const shuffleR = (a, r) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+// 作文の原稿用紙（20字×10行、印刷でも線が出るよう SVG でかく）
+const genko = () => { let g = ""; for (let i = 0; i <= 20; i++) g += `<line x1="${i * 22 + 0.5}" y1="0.5" x2="${i * 22 + 0.5}" y2="220.5"/>`; for (let j = 0; j <= 10; j++) g += `<line x1="0.5" y1="${j * 22 + 0.5}" x2="440.5" y2="${j * 22 + 0.5}"/>`; return `<svg class="genko" viewBox="0 0 441 221" width="441" height="221" stroke="#888" stroke-width="1">${g}</svg>`; };
 const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 
 const subjKey = () => document.querySelector("input[name=subj]:checked").value;
@@ -298,7 +310,7 @@ function build(seed) {
   return { seed, title: $("title").value || "テスト", name: d.name, grade: d.grade || 1, minutes: d.minutes || 50, units: units.map(u => d.units[u]), dqs, mode: m };
 }
 
-const choicesHtml = it => it.pics ? `<div class="ch pics">${it.pics.join("")}</div>` : it.choices ? `<div class="ch${it.choices.every(c => c.length <= 18) ? " two" : ""}">${it.choices.map(c => `<span>${esc(c)}</span>`).join("")}</div>` : "";
+const choicesHtml = it => it.pics ? `<div class="ch pics">${it.pics.join("")}</div>` : it.choices ? `<div class="ch${it.choices.every(c => c.length <= 18) ? " two" : ""}">${it.choices.map(c => `<span>${it.chHtml ? c : esc(c)}</span>`).join("")}</div>` : "";
 const qText = it => it.qHtml || esc(it.q);
 
 function scriptHtml(T) {
@@ -317,7 +329,7 @@ function render(T) {
     <ol class="items">${g.items.map((it, i) => `<li><span class="n">(${i + 1})</span><div>${qText(it)}${it.type === "order" ? "（記号で答えなさい）" : ""}${choicesHtml(it)}</div></li>`).join("")}</ol></section>`).join("");
   let html = `<article class="sheet">${head("")}${nameBar}${qHtml}<p class="foot">クロ先生のAI職員室　定期テスト自動作成　テスト番号 ${T.seed}</p></article>`;
   if ($("optSheet").checked) {
-    html += `<article class="sheet">${head("　解答用紙")}${nameBar}${T.dqs.map((g, gi) => `<p class="ans-head">${gi + 1}　${esc(g.title)}</p><div class="ans-grid">${g.items.map((it, i) => `<div class="cell${it.type === "desc" || it.wide || (it.type === "word" && it.ans.length > 14) ? " wide" : ""}"><span>(${i + 1})</span><span class="p">${it.pts}点</span></div>`).join("")}</div>`).join("")}<p class="foot">テスト番号 ${T.seed}</p></article>`;
+    html += `<article class="sheet">${head("　解答用紙")}${nameBar}${T.dqs.map((g, gi) => `<p class="ans-head">${gi + 1}　${esc(g.title)}</p><div class="ans-grid">${g.items.map((it, i) => `<div class="cell${it.type === "desc" || it.wide || (it.type === "word" && it.ans.length > 14) ? " wide" : ""}${it.essay ? " essay" : ""}"><span>(${i + 1})</span><span class="p">${it.pts}点</span>${it.essay ? genko() : ""}</div>`).join("")}</div>`).join("")}<p class="foot">テスト番号 ${T.seed}</p></article>`;
   }
   if ($("optKey").checked) {
     html += `<article class="sheet key">${head("　解答・解説")}${T.dqs.map((g, gi) => `<section class="dq"><h3><span class="num">${gi + 1}</span>${esc(g.title)}<span class="pts">（${g.items.reduce((a, it) => a + it.pts, 0)}点）</span></h3><ol class="items">${g.items.map((it, i) => `<li><span class="n">(${i + 1})</span><div><span class="a">${esc(it.ans)}</span>　<small>［${it.pts}点］</small>${it.crit ? `<div class="c">採点の目安：${esc(it.crit)}</div>` : ""}${it.ex ? `<div class="x">${esc(it.ex)}</div>` : ""}</div></li>`).join("")}</ol></section>`).join("")}<p class="foot">テスト番号 ${T.seed}</p></article>`;
