@@ -4,13 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>クロ先生のAI職員室</title>
-<meta name="description" content="中学校の先生と生徒のための、無料のAIツールとゲーム。ログイン不要・個人情報は集めません。運営：クロラボ">
+<meta name="description" content="中学校の先生と生徒のための、無料のAIツールとゲーム。一問一答タイムアタック（4教科48単元）、AIのまちがい探し（33題）、所見・学級通信の指示文づくり。ログイン不要・個人情報は集めません。運営：クロラボ">
+<meta property="og:title" content="クロ先生のAI職員室">
+<meta property="og:description" content="中学校の先生と生徒のための、無料のAIツールとゲーム。ログイン不要・個人情報は集めません。">
+<meta property="og:image" content="https://kurolab-sensei.github.io/assets/kuro.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
 <link rel="icon" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
-/* Layout: a chalkboard band on top (who we are), then a paper "職員室の机" with two shelves: 生徒向け / 先生向け. */
+/* Layout: chalkboard hero (who + today's tip) → numbers strip → two shelves (生徒向け / 先生向け) → how to use in class → note articles → about → FAQ. Paper "職員室の机" look below the board. */
 :root {
   --board: #1f4a3c;
   --board-deep: #173a2f;
@@ -31,40 +36,84 @@
 [hidden] { display: none !important; }
 html, body { margin: 0; background: var(--paper); }
 body { color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.8; }
-.in { max-width: 880px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+a { color: var(--board); }
+.in { max-width: 920px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 
-.hero { background: radial-gradient(120% 90% at 15% 0%, rgba(255,255,255,.07), transparent 60%), var(--board); color: var(--chalk); border-bottom: 10px solid var(--wood); }
-.hero .in { padding-block: 32px 36px; display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center; }
-.hero img { width: 112px; height: 112px; border-radius: 50%; border: 4px solid var(--gold); }
+/* hero */
+.hero { background: radial-gradient(120% 90% at 15% 0%, rgba(255,255,255,.07), transparent 60%), radial-gradient(80% 60% at 100% 100%, rgba(0,0,0,.2), transparent 70%), var(--board); color: var(--chalk); border-bottom: 12px solid var(--wood); }
+.hero .in { padding-block: 36px 34px; display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }
+.hero img { width: 124px; height: 124px; border-radius: 50%; border: 4px solid var(--gold); }
 .hero .eyebrow { font-size: 13px; letter-spacing: .14em; color: var(--chalk-dim); margin: 0; }
-.hero h1 { font-family: var(--f-chalk); font-weight: 600; font-size: clamp(28px, 6vw, 42px); line-height: 1.3; margin: 2px 0 6px; text-wrap: balance; }
-.hero p.lead { margin: 0; font-size: 16px; color: var(--chalk); }
-.hero .promise { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding: 0; list-style: none; }
-.hero .promise li { font-size: 13px; border: 1.5px solid rgba(243,241,231,.45); border-radius: 999px; padding: 2px 12px; }
-@media (max-width: 520px) { .hero .in { grid-template-columns: 1fr; justify-items: start; } .hero img { width: 88px; height: 88px; } }
+.hero h1 { font-family: var(--f-chalk); font-weight: 600; font-size: clamp(30px, 6.4vw, 46px); line-height: 1.25; margin: 2px 0 8px; }
+.hero p.lead { margin: 0; font-size: 16px; }
+.promise { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.promise li { font-size: 13px; border: 1.5px solid rgba(243,241,231,.45); border-radius: 999px; padding: 2px 12px; }
+.jump { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.jump a { font-weight: 700; text-decoration: none; border-radius: 999px; padding: 8px 18px; font-size: 15px; }
+.jump a.pri { background: var(--gold); color: var(--ink); }
+.jump a.sec { color: var(--chalk); border: 2px solid var(--chalk); }
+.jump a:focus-visible, .item:focus-visible, .links a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.chalk-tip { grid-column: 1 / -1; border-top: 1.5px dashed rgba(243,241,231,.35); padding-top: 14px; margin: 0; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.chalk-tip b { font-size: 12px; letter-spacing: .1em; color: var(--gold); flex: none; }
+.chalk-tip span { font-family: var(--f-chalk); font-size: 17px; }
+@media (max-width: 560px) { .hero .in { grid-template-columns: 1fr; justify-items: start; } .hero img { width: 92px; height: 92px; } }
 
-main .in { padding-block: 28px 8px; display: grid; gap: 36px; }
-section h2 { font-family: var(--f-chalk); font-weight: 600; font-size: 24px; margin: 0 0 4px; }
-section > p.sub { margin: 0 0 14px; color: var(--ink-soft); font-size: 14px; }
-.shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
-.item { background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 8px; align-content: start; color: inherit; text-decoration: none; min-width: 0; }
-a.item:hover { border-color: var(--board); }
-a.item:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-.item .k { font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--board); }
-.item h3 { margin: 0; font-size: 19px; line-height: 1.4; }
+/* numbers */
+.nums { background: var(--board-deep); color: var(--chalk); }
+.nums .in { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding-block: 14px; text-align: center; }
+.nums b { display: block; font-family: var(--f-chalk); font-size: 28px; line-height: 1.2; color: var(--gold); }
+.nums span { font-size: 12px; color: var(--chalk-dim); }
+@media (max-width: 560px) { .nums .in { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+main .in { padding-block: 32px 8px; display: grid; gap: 44px; }
+section h2 { font-family: var(--f-chalk); font-weight: 600; font-size: 26px; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+section h2 .no { font-family: var(--f-body); font-size: 12px; font-weight: 900; color: var(--card); background: var(--board); border-radius: 6px; padding: 0 8px; }
+section > p.sub { margin: 0 0 16px; color: var(--ink-soft); font-size: 14px; }
+
+/* shelves */
+.shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.item { background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; color: inherit; text-decoration: none; min-width: 0; box-shadow: 0 3px 0 var(--line); transition: transform .15s, box-shadow .15s; }
+a.item:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--line); border-color: var(--board); }
+.item .art { background: var(--board); height: 112px; display: grid; place-items: center; position: relative; }
+.item .art svg { width: 100%; height: 100%; }
+.item .body { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 11px; font-weight: 700; color: var(--board); background: #e6efe9; border-radius: 4px; padding: 0 6px; }
+.tag.new { color: #fff; background: var(--red); }
+.item h3 { margin: 0; font-size: 20px; line-height: 1.4; }
 .item p { margin: 0; font-size: 14px; color: var(--ink-soft); }
 .item .go { font-weight: 700; color: var(--board); font-size: 14px; }
-.item.soon { border-style: dashed; background: transparent; }
-.item.soon .go { color: var(--ink-soft); }
+@media (prefers-reduced-motion: reduce) { .item { transition: none; } a.item:hover { transform: none; } }
 
-.about { background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 10px; }
-.about p { margin: 0; }
+/* how to use */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; counter-reset: st; }
+.step { background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 16px; }
+.step h3 { margin: 0 0 4px; font-size: 17px; display: flex; gap: 8px; align-items: center; }
+.step h3::before { counter-increment: st; content: counter(st); font-family: var(--f-chalk); font-size: 18px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--board); color: var(--chalk); flex: none; }
+.step p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+/* notes */
+.notes { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.notes a { display: flex; gap: 12px; align-items: center; background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 16px; text-decoration: none; color: var(--ink); }
+.notes a:hover { border-color: var(--board); }
+.notes .n { font-family: var(--f-chalk); font-size: 22px; color: var(--board); flex: none; width: 28px; text-align: center; }
+.notes .t { font-weight: 700; }
+.notes small { display: block; color: var(--ink-soft); font-weight: 500; }
+
+.about { background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 18px; display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: start; }
+.about img { width: 72px; height: 72px; border-radius: 50%; border: 3px solid var(--gold); }
+.about p { margin: 0 0 10px; }
+@media (max-width: 520px) { .about { grid-template-columns: 1fr; } }
 .links { display: flex; flex-wrap: wrap; gap: 10px; }
 .links a { font-weight: 700; color: var(--chalk); background: var(--board); text-decoration: none; border-radius: 999px; padding: 6px 16px; font-size: 14px; }
 .links a:hover { background: var(--board-deep); }
-.links a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
-footer .in { padding-block: 28px 40px; font-size: 12px; color: var(--ink-soft); }
+.faq details { background: var(--card); border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 16px; margin-bottom: 8px; }
+.faq summary { font-weight: 700; cursor: pointer; }
+.faq details p { margin: 6px 0 2px; font-size: 14px; color: var(--ink-soft); }
+
+footer { margin-top: 40px; background: var(--board-deep); color: var(--chalk-dim); }
+footer .in { padding-block: 24px 36px; font-size: 12px; }
 footer p { margin: 0 0 4px; }
 </style>
 </head>
@@ -72,7 +121,7 @@ footer p { margin: 0 0 4px; }
 
 <header class="hero">
   <div class="in">
-    <img src="assets/kuro.jpg" alt="丸メガネの黒猫、クロ先生" width="112" height="112">
+    <img src="assets/kuro.jpg" alt="丸メガネの黒猫、クロ先生" width="124" height="124">
     <div>
       <p class="eyebrow">中学校の職員室に住む黒猫のAI先生</p>
       <h1>クロ先生のAI職員室</h1>
@@ -82,60 +131,156 @@ footer p { margin: 0 0 4px; }
         <li>名前や成績は集めません</li>
         <li>元中学校教諭が監修</li>
       </ul>
+      <div class="jump">
+        <a class="pri" href="#students">生徒向けゲーム</a>
+        <a class="sec" href="#teachers">先生向けの道具</a>
+      </div>
     </div>
+    <p class="chalk-tip"><b>今日のひとこと</b><span id="tip">AIが書くのは下書きまで。最後に仕上げるのは先生です。</span></p>
   </div>
 </header>
 
+<div class="nums" aria-label="このサイトの中身">
+  <div class="in">
+    <div><b>48</b><span>タイムアタックの単元</span></div>
+    <div><b>33</b><span>AIのまちがい探しの題</span></div>
+    <div><b>4</b><span>教科（数・英・理・社）</span></div>
+    <div><b>0円</b><span>登録も費用もなし</span></div>
+  </div>
+</div>
+
 <main>
   <div class="in">
-    <section aria-labelledby="students">
-      <h2 id="students">生徒向けゲーム</h2>
-      <p class="sub">授業のはじめの5分に。スマホでもタブレットでも遊べます。</p>
+    <section aria-labelledby="students" id="students-sec">
+      <h2 id="students"><span class="no">生徒</span>生徒向けゲーム</h2>
+      <p class="sub">授業のはじめの5分や、テスト前の復習に。スマホでもタブレットでも遊べます。</p>
       <div class="shelf">
-        <a class="item" href="games/ai-machigai.html">
-          <span class="k">AIリテラシー・全教科</span>
-          <h3>AIのまちがい探し</h3>
-          <p>生徒がAIに質問して返ってきた答え。一文ずつ「信用できる」か「あやしい」かを見分けます。全33題、AIがやりがちなミスの種類もわかります。</p>
-          <span class="go">遊ぶ →</span>
-        </a>
         <a class="item" href="games/time-attack.html">
-          <span class="k">ドリル・数英理社</span>
-          <h3>一問一答タイムアタック</h3>
-          <p>数学・英語・理科・社会、中1〜中3の48単元。60秒で何点取れるか。まちがえた問題はクロ先生が解説します。</p>
-          <span class="go">遊ぶ →</span>
+          <div class="art" aria-hidden="true">
+            <svg viewBox="0 0 280 112" preserveAspectRatio="xMidYMid slice">
+              <circle cx="70" cy="58" r="34" fill="none" stroke="#f3f1e7" stroke-width="5"/>
+              <rect x="64" y="14" width="12" height="8" rx="2" fill="#f3f1e7"/>
+              <line x1="70" y1="58" x2="70" y2="36" stroke="#e8b64c" stroke-width="5" stroke-linecap="round"/>
+              <line x1="70" y1="58" x2="86" y2="66" stroke="#f3f1e7" stroke-width="4" stroke-linecap="round"/>
+              <text x="128" y="50" fill="#f3f1e7" font-size="26" font-family="Klee One, serif">60秒で</text>
+              <text x="128" y="84" fill="#e8b64c" font-size="26" font-family="Klee One, serif">何点？</text>
+            </svg>
+          </div>
+          <div class="body">
+            <div class="tags"><span class="tag new">48単元に拡大</span><span class="tag">中1〜中3</span><span class="tag">1回1分</span></div>
+            <h3>一問一答タイムアタック</h3>
+            <p>数学・英語・理科・社会から単元を選んで、60秒で何点取れるか。連続正解でコンボ加点。まちがえた問題はクロ先生が解説します。</p>
+            <span class="go">遊ぶ →</span>
+          </div>
+        </a>
+        <a class="item" href="games/ai-machigai.html">
+          <div class="art" aria-hidden="true">
+            <svg viewBox="0 0 280 112" preserveAspectRatio="xMidYMid slice">
+              <rect x="150" y="16" width="112" height="30" rx="12" fill="#e8b64c"/>
+              <text x="162" y="37" fill="#23302a" font-size="14" font-family="Zen Maru Gothic, sans-serif" font-weight="700">教えて！</text>
+              <rect x="18" y="54" width="150" height="44" rx="12" fill="#fbfaf4"/>
+              <text x="30" y="74" fill="#23302a" font-size="13" font-family="Zen Maru Gothic, sans-serif">AIの答え……</text>
+              <text x="30" y="91" fill="#c2453a" font-size="13" font-family="Zen Maru Gothic, sans-serif" font-weight="700">本当かな？</text>
+              <circle cx="214" cy="80" r="18" fill="none" stroke="#f3f1e7" stroke-width="5"/>
+              <line x1="227" y1="93" x2="244" y2="108" stroke="#f3f1e7" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="body">
+            <div class="tags"><span class="tag new">33題に拡大</span><span class="tag">AIリテラシー</span><span class="tag">1回5〜8分</span></div>
+            <h3>AIのまちがい探し</h3>
+            <p>生徒がAIに質問して返ってきた答え。一文ずつ「信用できる」か「あやしい」かを見分けます。AIがやりがちなミスの種類もわかります。</p>
+            <span class="go">遊ぶ →</span>
+          </div>
         </a>
       </div>
     </section>
 
     <section aria-labelledby="teachers">
-      <h2 id="teachers">先生向けの道具</h2>
+      <h2 id="teachers"><span class="no">先生</span>先生向けの道具</h2>
       <p class="sub">入力した内容はどこにも送られません。できあがった指示文を、学校で使ってよいAIに貼ってください。</p>
       <div class="shelf">
         <a class="item" href="tools/shiji.html">
-          <span class="k">所見・学級通信</span>
-          <h3>AI指示文づくり</h3>
-          <p>いくつか選んで書くだけで、AIに渡す指示文ができます。生徒の名前を入れない形で作ります。</p>
-          <span class="go">使う →</span>
+          <div class="art" aria-hidden="true">
+            <svg viewBox="0 0 280 112" preserveAspectRatio="xMidYMid slice">
+              <rect x="40" y="18" width="92" height="80" rx="6" fill="#fbfaf4"/>
+              <line x1="54" y1="40" x2="118" y2="40" stroke="#b9c7bd" stroke-width="3"/>
+              <line x1="54" y1="56" x2="118" y2="56" stroke="#b9c7bd" stroke-width="3"/>
+              <line x1="54" y1="72" x2="100" y2="72" stroke="#b9c7bd" stroke-width="3"/>
+              <path d="M150 58 h40" stroke="#e8b64c" stroke-width="5" stroke-linecap="round"/>
+              <path d="M182 48 l12 10 l-12 10" fill="none" stroke="#e8b64c" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+              <text x="206" y="66" fill="#f3f1e7" font-size="22" font-family="Klee One, serif">AI</text>
+            </svg>
+          </div>
+          <div class="body">
+            <div class="tags"><span class="tag">所見</span><span class="tag">学級通信</span><span class="tag">名前を入れない</span></div>
+            <h3>AI指示文づくり</h3>
+            <p>いくつか選んで書くだけで、AIに渡す指示文ができます。生徒の名前を入れない形で作り、名前らしい言葉があれば注意します。</p>
+            <span class="go">使う →</span>
+          </div>
         </a>
         <a class="item" href="https://docs.google.com/forms/d/e/1FAIpQLSfimPgnPoBi_XNWT6m3Sh8ceKHxzAIVu8mKS_zi1ShHjb9iQA/viewform" rel="noopener">
-          <span class="k">お便り</span>
-          <h3>クロ先生の放課後ポスト</h3>
-          <p>愚痴でも困りごとでも。名前もメールアドレスもいらない、匿名のお便りポストです。</p>
-          <span class="go">お便りを送る →</span>
+          <div class="art" aria-hidden="true">
+            <svg viewBox="0 0 280 112" preserveAspectRatio="xMidYMid slice">
+              <rect x="96" y="30" width="88" height="70" rx="6" fill="#d9574a"/>
+              <rect x="84" y="20" width="112" height="18" rx="5" fill="#b84538"/>
+              <rect x="118" y="44" width="44" height="6" rx="3" fill="#23302a"/>
+              <rect x="124" y="4" width="32" height="40" rx="2" fill="#fbfaf4" transform="rotate(-8 140 24)"/>
+              <circle cx="232" cy="40" r="3" fill="#e8b64c"/><circle cx="48" cy="30" r="2" fill="#e8b64c"/><circle cx="60" cy="84" r="2.5" fill="#f3f1e7"/>
+            </svg>
+          </div>
+          <div class="body">
+            <div class="tags"><span class="tag">匿名</span><span class="tag">愚痴もOK</span></div>
+            <h3>クロ先生の放課後ポスト</h3>
+            <p>愚痴でも困りごとでも。名前もメールアドレスもいらない、匿名のお便りポストです。届いた声に、クロ先生がXやnoteで答えます。</p>
+            <span class="go">お便りを送る →</span>
+          </div>
         </a>
       </div>
+    </section>
+
+    <section aria-labelledby="howto">
+      <h2 id="howto">授業での使い方</h2>
+      <p class="sub">準備はURLを配るだけ。生徒のログインも、名簿の登録もいりません。</p>
+      <div class="steps">
+        <div class="step"><h3>授業のはじめの5分</h3><p>タイムアタックで前回の単元をおさらい。点数を言い合うだけで、教室があたたまります。</p></div>
+        <div class="step"><h3>情報モラルの時間に</h3><p>AIのまちがい探しを1回（5題）。終わったら「どこで気づいた？」「どう確かめる？」を話し合います。</p></div>
+        <div class="step"><h3>テスト前の家庭学習に</h3><p>まちがえた問題はクロ先生の解説つきで見直せます。記録は生徒の端末の中だけに残ります。</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="notes">
+      <h2 id="notes">クロ先生のnote</h2>
+      <p class="sub">AIで「下書きだけ楽にする」方法を、無料の記事で紹介しています。</p>
+      <ul class="notes">
+        <li><a href="https://note.com/kurolab_sensei/n/n809d497cc140" rel="noopener"><span class="n">③</span><span><span class="t">学級通信の書き出しが10分で決まる指示文</span><small>材料4つをAIに渡すだけ。季節・行事別の材料メモつき</small></span></a></li>
+        <li><a href="https://note.com/kurolab_sensei/n/na63998d88f43" rel="noopener"><span class="n">②</span><span><span class="t">通知表の所見を、個人情報を入れずにAIで下書きする3ステップ</span><small>生徒を記号にして、行動の事実だけを伝える</small></span></a></li>
+        <li><a href="https://note.com/kurolab_sensei/n/n91489d54ef00" rel="noopener"><span class="n">①</span><span><span class="t">はじめまして、職員室の黒猫、クロ先生です</span><small>クロ先生の3つの約束</small></span></a></li>
+      </ul>
     </section>
 
     <section aria-labelledby="about">
       <h2 id="about">クロ先生について</h2>
       <div class="about">
-        <p>所見、学級通信、小テスト、保護者への連絡。授業の外の仕事を、AIで「下書きだけ楽にする」方法を発信しています。生徒の個人情報をAIに入れない使い方だけを紹介します。</p>
-        <div class="links">
-          <a href="https://note.com/kurolab_sensei" rel="noopener">note</a>
-          <a href="https://x.com/kurolab_sensei" rel="noopener">X</a>
-          <a href="https://kurolab-sensei.booth.pm/" rel="noopener">BOOTH</a>
+        <img src="assets/kuro.jpg" alt="" width="72" height="72">
+        <div>
+          <p>中学校の職員室に住みついた、丸メガネの黒猫のAIです。所見、学級通信、小テスト、保護者への連絡。授業の外の仕事を、AIで「下書きだけ楽にする」方法を発信しています。</p>
+          <p>紹介するのは、生徒の個人情報をAIに入れない使い方だけ。内容は元中学校教諭が、現場で本当に使えるかを確かめてから出しています。</p>
+          <div class="links">
+            <a href="https://note.com/kurolab_sensei" rel="noopener">note</a>
+            <a href="https://x.com/kurolab_sensei" rel="noopener">X（@kurolab_sensei）</a>
+            <a href="https://kurolab-sensei.booth.pm/" rel="noopener">BOOTH</a>
+          </div>
         </div>
       </div>
+    </section>
+
+    <section aria-labelledby="faq" class="faq">
+      <h2 id="faq">よくある質問</h2>
+      <details><summary>本当に無料ですか？</summary><p>はい。ゲームと道具はすべて無料で、登録もいりません。広告もありません。</p></details>
+      <details><summary>生徒の情報は集めていますか？</summary><p>集めていません。名前や点数はどこにも送られず、ゲームの記録はその端末の中だけに保存されます。</p></details>
+      <details><summary>学校のタブレットで使えますか？</summary><p>ブラウザで開けるので、多くの学校タブレットで使えます。表示されないときは、学校のフィルタ設定をご確認ください。</p></details>
+      <details><summary>問題は教科書から取っていますか？</summary><p>いいえ。計算の自動生成と、一般的な知識をもとにクロラボが作ったオリジナルです。教科書の文章は使っていません。</p></details>
+      <details><summary>まちがいを見つけたら？</summary><p>放課後ポスト、またはXで教えてください。すぐに直します。</p></details>
     </section>
   </div>
 </main>
@@ -146,5 +291,23 @@ footer p { margin: 0 0 4px; }
     <p>このサイトは入力内容やアクセスした人の情報を保存・収集しません。学校でAIを使うときは、勤務校や自治体のルールを確認してください。</p>
   </div>
 </footer>
+
+<script>
+// 今日のひとこと：日付で1つ選ぶ（毎日かわる）
+const TIPS = [
+  "AIが書くのは下書きまで。最後に仕上げるのは先生です。",
+  "生徒の名前は「生徒A」に。対応表は手元の紙だけに。",
+  "AIに「3案ください」と頼むと、選んで直す作業に変わります。",
+  "「必ず」「絶対」がAIの答えに出てきたら、まず疑ってみましょう。",
+  "数字と年号と人名は、AIのまちがいが出やすい3大ポイントです。",
+  "指示文の最後に「雰囲気を変えて」と足すと、似た案が並びにくくなります。",
+  "AIに「本当？」と聞いても、まちがいを「はい」と言うことがあります。確かめるのは資料で。",
+  "学級通信は、先生だけが知っている一場面を1文足すと「このクラスの通信」になります。",
+  "課題は「次に期待すること」と書くだけで、所見の印象が変わります。",
+  "使ってよいAIは、学校や自治体のルールで決まっています。最初に確認を。"
+];
+const d = new Date();
+document.getElementById("tip").textContent = TIPS[(d.getFullYear() * 400 + d.getMonth() * 31 + d.getDate()) % TIPS.length];
+</script>
 </body>
 </html>
