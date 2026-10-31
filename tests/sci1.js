@@ -26,6 +26,104 @@ const svg = (w, h, body) => `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="$
 const lbl = (x, y, t) => `<text x="${x}" y="${y}" font-weight="700">${t}</text>`;
 const line = (x1, y1, x2, y2, extra = "") => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#222" stroke-width="1.2" ${extra}/>`;
 
+/* ---------- 教科書風の実験器具・花の図 ---------- */
+function figMicroscope() {
+  return `
+  <defs><linearGradient id="mt" x1="0" x2="1"><stop offset="0" stop-color="#f2f2f2"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#d9d9d9"/></linearGradient></defs>
+  <path d="M58 278 Q58 262 74 260 L214 260 Q230 262 230 278 Z" fill="#cfcfcf" stroke="#222" stroke-width="1.5"/>
+  <path d="M188 260 L188 196 Q190 128 150 92" fill="none" stroke="#222" stroke-width="22" stroke-linecap="round"/>
+  <path d="M188 260 L188 196 Q190 128 150 92" fill="none" stroke="#e6e6e6" stroke-width="19" stroke-linecap="round"/>
+  <rect x="100" y="52" width="26" height="78" fill="url(#mt)" stroke="#222" stroke-width="1.5"/>
+  <rect x="124" y="80" width="34" height="22" rx="3" fill="#e6e6e6" stroke="#222" stroke-width="1.5"/>
+  <rect x="104" y="26" width="18" height="28" fill="url(#mt)" stroke="#222" stroke-width="1.5"/>
+  <rect x="101" y="22" width="24" height="6" rx="2" fill="#bbb" stroke="#222"/>
+  <path d="M92 130 L134 130 L128 142 L98 142 Z" fill="#d6d6d6" stroke="#222" stroke-width="1.5"/>
+  <rect x="106" y="142" width="12" height="24" fill="url(#mt)" stroke="#222" stroke-width="1.5"/>
+  <rect x="108" y="166" width="8" height="6" fill="#999" stroke="#222"/>
+  <rect x="122" y="140" width="10" height="16" fill="url(#mt)" stroke="#222" transform="rotate(-28 127 140)"/>
+  <rect x="58" y="182" width="124" height="9" fill="#bdbdbd" stroke="#222" stroke-width="1.5"/>
+  <rect x="90" y="178" width="44" height="4" fill="#eef3f8" stroke="#222" stroke-width=".8"/>
+  <path d="M72 182 L82 176 L94 176" fill="none" stroke="#222" stroke-width="1.5"/><path d="M168 182 L158 176 L146 176" fill="none" stroke="#222" stroke-width="1.5"/>
+  <path d="M180 186 L178 186" stroke="#222"/>
+  <path d="M112 212 L112 200" stroke="#222" stroke-width="2"/>
+  <ellipse cx="112" cy="218" rx="20" ry="7" fill="#e9eef3" stroke="#222" stroke-width="1.5"/>
+  <circle cx="190" cy="156" r="15" fill="#d6d6d6" stroke="#222" stroke-width="1.5"/><circle cx="190" cy="156" r="6" fill="#bbb" stroke="#222"/>
+  <g font-weight="700" font-size="14">
+  <line x1="122" y1="30" x2="168" y2="20" stroke="#222"/><text x="172" y="24">A</text>
+  <line x1="106" y1="158" x2="44" y2="150" stroke="#222"/><text x="28" y="155">B</text>
+  <line x1="62" y1="187" x2="30" y2="196" stroke="#222"/><text x="14" y="200">C</text>
+  <line x1="94" y1="220" x2="44" y2="236" stroke="#222"/><text x="28" y="240">D</text>
+  <line x1="205" y1="156" x2="246" y2="150" stroke="#222"/><text x="250" y="155">E</text>
+  </g>`;
+}
+function figFlower() {
+  // アブラナの花の縦断面（模式図）
+  return `
+  <path d="M150 262 L150 214" stroke="#222" stroke-width="5" stroke-linecap="round"/>
+  <path d="M120 214 Q150 228 180 214 Q170 204 150 204 Q130 204 120 214 Z" fill="#d8e8d0" stroke="#222" stroke-width="1.5"/>
+  <path d="M124 212 Q96 196 88 160 Q108 176 132 204 Z" fill="#cfe3c6" stroke="#222" stroke-width="1.5"/>
+  <path d="M176 212 Q204 196 212 160 Q192 176 168 204 Z" fill="#cfe3c6" stroke="#222" stroke-width="1.5"/>
+  <path d="M132 206 Q80 170 70 96 Q100 120 124 160 Q132 186 140 204 Z" fill="#fff6c9" stroke="#222" stroke-width="1.5"/>
+  <path d="M168 206 Q220 170 230 96 Q200 120 176 160 Q168 186 160 204 Z" fill="#fff6c9" stroke="#222" stroke-width="1.5"/>
+  <path d="M141 204 Q136 160 141 110 L159 110 Q164 160 159 204 Z" fill="#e3efd9" stroke="#222" stroke-width="1.5"/>
+  ${[124, 134, 146, 158, 170, 180].map((y, i) => `<ellipse cx="${i % 2 ? 154 : 146}" cy="${y}" rx="3.4" ry="4" fill="#fff" stroke="#222"/>`).join("")}
+  <path d="M141 110 Q140 92 146 84 L154 84 Q160 92 159 110" fill="#e3efd9" stroke="#222" stroke-width="1.5"/>
+  <path d="M142 84 Q150 72 158 84 Z" fill="#c9dcbc" stroke="#222" stroke-width="1.5"/>
+  ${[[132, 1], [168, -1], [124, 1], [176, -1]].map(([x, s], i) => { const top = i < 2 ? 102 : 124; return `<path d="M${x + s * 4} 204 Q${x} ${(top + 204) / 2} ${x} ${top + 10}" fill="none" stroke="#222" stroke-width="1.6"/><ellipse cx="${x}" cy="${top}" rx="5" ry="10" fill="#f2d36b" stroke="#222" stroke-width="1.2"/>`; }).join("")}
+  <g font-weight="700" font-size="14">
+  <line x1="150" y1="76" x2="198" y2="52" stroke="#222"/><text x="202" y="56">A</text>
+  <line x1="127" y1="102" x2="70" y2="62" stroke="#222"/><text x="54" y="64">B</text>
+  <line x1="154" y1="146" x2="250" y2="140" stroke="#222"/><text x="254" y="145">C</text>
+  <line x1="142" y1="170" x2="54" y2="170" stroke="#222"/><text x="38" y="175">D</text>
+  <line x1="98" y1="178" x2="54" y2="214" stroke="#222"/><text x="38" y="218">E</text>
+  <line x1="214" y1="128" x2="250" y2="100" stroke="#222"/><text x="254" y="104">F</text>
+  </g>`;
+}
+function figGas() {
+  return `
+  <rect x="24" y="214" width="150" height="10" fill="#cfcfcf" stroke="#222"/>
+  <path d="M70 70 L70 112 L30 206 Q30 214 40 214 L140 214 Q150 214 150 206 L110 112 L110 70" fill="#fff" stroke="#222" stroke-width="1.6"/>
+  <path d="M48 168 L132 168 L148 206 Q148 212 140 212 L40 212 Q32 212 32 206 Z" fill="#dce9f5"/>
+  ${[[58, 200], [76, 204], [98, 198], [118, 204], [86, 196]].map(([x, y]) => `<path d="M${x - 6} ${y + 4} L${x} ${y - 4} L${x + 7} ${y + 3} Z" fill="#9a9a9a" stroke="#222" stroke-width=".8"/>`).join("")}
+  ${[[70, 186], [96, 180], [110, 176], [84, 172]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="#fff" stroke="#222" stroke-width=".8"/>`).join("")}
+  <rect x="64" y="58" width="52" height="16" rx="2" fill="#a0a0a0" stroke="#222" stroke-width="1.5"/>
+  <path d="M80 58 L80 18 M74 18 L86 18" stroke="#222" stroke-width="1.6"/>
+  <path d="M68 6 L92 6 L83 18 L77 18 Z" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <path d="M80 60 L80 150" stroke="#222" stroke-width="1.6"/>
+  <path d="M100 58 L100 36 L190 36" fill="none" stroke="#222" stroke-width="2"/>
+  <path d="M190 36 Q206 36 210 60 L214 96 Q218 108 240 108 Q252 108 252 124 L252 150" fill="none" stroke="#555" stroke-width="5"/>
+  <rect x="226" y="120" width="160" height="104" fill="#fff" stroke="#222" stroke-width="1.6"/>
+  <rect x="227" y="140" width="158" height="83" fill="#dce9f5"/>
+  <path d="M227 140 L385 140" stroke="#222" stroke-width=".8"/>
+  <path d="M282 196 L282 60 Q282 48 294 48 L306 48 Q318 48 318 60 L318 196" fill="#eef5fb" stroke="#222" stroke-width="1.6"/>
+  <rect x="283" y="49" width="34" height="46" fill="#fff"/>
+  <path d="M283 95 L317 95" stroke="#222" stroke-width=".8"/>
+  <path d="M252 148 L252 212 Q252 216 256 216 L296 216 Q300 216 300 212 L300 178" fill="none" stroke="#222" stroke-width="2"/>
+  ${[[300, 168], [304, 150], [298, 132], [302, 112]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#fff" stroke="#222" stroke-width=".8"/>`).join("")}
+  <g font-size="12"><text x="100" y="246">三角フラスコ</text><text x="326" y="58">集気びん</text><text x="330" y="214">水そう</text><text x="96" y="14">ろうと</text>
+  <text x="140" y="194">液体X</text><line x1="138" y1="190" x2="124" y2="184" stroke="#222"/>
+  <text x="152" y="230" >固体Y</text><line x1="150" y1="226" x2="118" y2="206" stroke="#222"/></g>`;
+}
+function figBurner() {
+  return `
+  <path d="M60 252 L168 252 L156 232 L72 232 Z" fill="#c9c9c9" stroke="#222" stroke-width="1.5"/>
+  <rect x="100" y="206" width="28" height="26" fill="#d9d9d9" stroke="#222" stroke-width="1.5"/>
+  <rect x="88" y="196" width="52" height="14" rx="3" fill="#b8b8b8" stroke="#222" stroke-width="1.5"/>
+  ${[94, 104, 114, 124, 134].map(x => `<line x1="${x}" y1="198" x2="${x}" y2="208" stroke="#222" stroke-width=".8"/>`).join("")}
+  <rect x="104" y="80" width="20" height="118" fill="#e8e8e8" stroke="#222" stroke-width="1.5"/>
+  <rect x="94" y="160" width="40" height="12" rx="3" fill="#cfcfcf" stroke="#222" stroke-width="1.5"/>
+  ${[100, 110, 118, 126].map(x => `<line x1="${x}" y1="161" x2="${x}" y2="171" stroke="#222" stroke-width=".8"/>`).join("")}
+  <path d="M128 222 L190 222" stroke="#222" stroke-width="7"/><path d="M128 222 L190 222" stroke="#aaa" stroke-width="4"/>
+  <path d="M190 222 Q214 222 222 240" fill="none" stroke="#555" stroke-width="7"/>
+  <rect x="214" y="236" width="18" height="22" fill="#ddd" stroke="#222" stroke-width="1.5"/>
+  <path d="M206 236 L240 236" stroke="#222" stroke-width="3"/>
+  <path d="M104 80 Q102 44 114 18 Q126 44 124 80 Z" fill="#dbe8fa" stroke="#5577aa" stroke-width="1.2"/><path d="M108 80 Q108 56 114 42 Q120 56 120 80 Z" fill="#9fbde8" stroke="#5577aa" stroke-width=".8"/>
+  <g font-weight="700" font-size="14">
+  <line x1="134" y1="166" x2="176" y2="150" stroke="#222"/><text x="180" y="154">X</text>
+  <line x1="140" y1="203" x2="176" y2="190" stroke="#222"/><text x="180" y="194">Y</text>
+  </g><g font-size="12"><text x="238" y="252">元栓</text><text x="150" y="216">ガス</text><text x="40" y="60">（炎）</text></g>`;
+}
+
 /* ---------- グラフを描く共通関数 ---------- */
 function graph({ w = 330, h = 230, xmax, ymax, xstep, ystep, xlabel, ylabel, series, xticks, yticks }) {
   const L = 46, B = h - 36, R = w - 12, T = 12;
@@ -52,20 +150,7 @@ const add = (unit, name, f) => T.push({ unit, name, f });
 add("bio", "顕微鏡の使い方", r => {
   const { ch, word, calc, desc, order, pick } = mk(r);
   const e = pick([10, 15]), o = pick([4, 10, 40]);
-  const fig = svg(250, 230, `
-    <rect x="150" y="196" width="80" height="14" rx="3" fill="#ddd" stroke="#222"/>
-    <path d="M200 196 L200 150 Q200 110 170 70 L160 60" fill="none" stroke="#222" stroke-width="10" stroke-linecap="round"/>
-    <rect x="96" y="26" width="16" height="36" fill="#eee" stroke="#222"/>
-    <rect x="92" y="60" width="24" height="54" fill="#eee" stroke="#222" transform="rotate(-20 104 60)"/>
-    <rect x="70" y="116" width="26" height="14" fill="#ddd" stroke="#222" transform="rotate(-20 83 123)"/>
-    <rect x="60" y="138" width="110" height="8" fill="#ccc" stroke="#222"/>
-    <ellipse cx="96" cy="172" rx="16" ry="6" fill="#eee" stroke="#222"/>
-    <circle cx="198" cy="128" r="12" fill="#eee" stroke="#222"/>
-    ${line(112, 40, 132, 30)}${lbl(134, 32, "A")}
-    ${line(80, 123, 40, 110)}${lbl(26, 112, "B")}
-    ${line(64, 142, 34, 150)}${lbl(20, 154, "C")}
-    ${line(80, 172, 40, 180)}${lbl(26, 184, "D")}
-    ${line(210, 128, 236, 120)}${lbl(238, 122, "E")}`);
+  const fig = svg(280, 290, figMicroscope());
   return {
     unit: "bio", title: "顕微鏡の使い方", fig,
     lead: "図は、ある顕微鏡を模式的に表したものです。これを使って、池の水にふくまれる小さな生物を観察しました。",
@@ -84,24 +169,7 @@ add("bio", "顕微鏡の使い方", r => {
 
 add("bio", "花のつくり", r => {
   const { ch, word, desc, order, pick } = mk(r);
-  const fig = svg(300, 220, `
-    <path d="M150 200 L150 150" stroke="#222" stroke-width="3"/>
-    <path d="M110 160 Q150 182 190 160" fill="none" stroke="#222" stroke-width="2"/>
-    <path d="M118 158 Q100 120 112 80 Q128 120 140 152" fill="#f5f5f5" stroke="#222"/>
-    <path d="M182 158 Q200 120 188 80 Q172 120 160 152" fill="#f5f5f5" stroke="#222"/>
-    <ellipse cx="150" cy="138" rx="16" ry="20" fill="#e8e8e8" stroke="#222"/>
-    <circle cx="146" cy="134" r="3.5" fill="#fff" stroke="#222"/><circle cx="154" cy="142" r="3.5" fill="#fff" stroke="#222"/><circle cx="147" cy="146" r="3.5" fill="#fff" stroke="#222"/>
-    <path d="M150 118 L150 70" stroke="#222" stroke-width="5"/>
-    <ellipse cx="150" cy="66" rx="7" ry="4" fill="#ccc" stroke="#222"/>
-    <path d="M132 150 L128 92" stroke="#222" stroke-width="1.5"/><ellipse cx="128" cy="88" rx="4" ry="7" fill="#999" stroke="#222"/>
-    <path d="M168 150 L172 92" stroke="#222" stroke-width="1.5"/><ellipse cx="172" cy="88" rx="4" ry="7" fill="#999" stroke="#222"/>
-    <path d="M112 162 L96 176 L120 166 Z" fill="#ddd" stroke="#222"/><path d="M188 162 L204 176 L180 166 Z" fill="#ddd" stroke="#222"/>
-    ${line(157, 66, 214, 40)}${lbl(218, 44, "A")}
-    ${line(124, 86, 70, 70)}${lbl(56, 72, "B")}
-    ${line(154, 142, 230, 120)}${lbl(234, 124, "C")}
-    ${line(138, 146, 70, 130)}${lbl(56, 134, "D")}
-    ${line(100, 174, 64, 190)}${lbl(50, 194, "E")}
-    ${line(194, 110, 236, 90)}${lbl(240, 94, "F")}`);
+  const fig = svg(290, 270, figFlower());
   const ri = r() < 0.5;
   const right = ri ? pick(["アブラナ", "サクラ", "エンドウ"]) : pick(["ツツジ", "アサガオ", "タンポポ"]);
   const flowerQ = ch(`次のうち、${ri ? "花弁が1枚1枚離れている（離弁花の）" : "花弁がくっついている（合弁花の）"}植物はどれか。`, right, ri ? ["ツツジ", "アサガオ", "タンポポ"] : ["アブラナ", "サクラ", "エンドウ"], ri ? "アブラナ・サクラ・エンドウは離弁花です。" : "ツツジ・アサガオ・タンポポは合弁花です。");
@@ -231,18 +299,7 @@ const GAS = {
 add("mat", "気体の発生と性質", r => {
   const { ch, word, desc, pick } = mk(r);
   const g = pick(Object.keys(GAS)), d = GAS[g];
-  const fig = svg(360, 190, `
-    <path d="M40 60 L40 40 L70 40 L70 60 L96 160 L14 160 Z" fill="#fff" stroke="#222"/>
-    <path d="M24 130 L86 130 L96 160 L14 160 Z" fill="#dde8f3"/>
-    <rect x="34" y="28" width="42" height="14" fill="#999" stroke="#222"/>
-    <path d="M55 28 L55 14 L60 6 L64 14 L64 28" fill="#eee" stroke="#222"/>
-    <path d="M66 34 L130 34 L130 120 L250 120 L250 96" fill="none" stroke="#222" stroke-width="2"/>
-    <rect x="160" y="100" width="180" height="70" fill="#dde8f3" stroke="#222"/>
-    <rect x="230" y="20" width="40" height="110" fill="#eef5fb" stroke="#222"/>
-    <rect x="231" y="21" width="38" height="40" fill="#fff"/>
-    <text x="22" y="184" font-size="11">三角フラスコ</text><text x="278" y="40" font-size="11">集気びん</text>
-    <text x="40" y="150" font-size="11">液体X</text><text x="46" y="122" font-size="11">固体Y</text>
-    <circle cx="32" cy="152" r="3" fill="#666"/><circle cx="60" cy="150" r="3" fill="#666"/><circle cx="74" cy="154" r="3" fill="#666"/>`);
+  const fig = svg(400, 256, figGas());
   return {
     unit: "mat", title: "気体の発生と性質", fig,
     lead: `図のような装置で、${g}を発生させて集めました。`,
@@ -411,14 +468,26 @@ add("phy", "力とばね", r => {
 /* ===================== 地学（大地の成り立ちと変化） ===================== */
 add("ear", "火山と火成岩", r => {
   const { ch, word, desc } = mk(r);
-  const crystals = (cx, small) => {
-    let s = `<circle cx="${cx}" cy="70" r="56" fill="#f4f4f4" stroke="#222"/>`;
-    const pts = small ? [[-30, -20], [10, -30], [25, 10], [-15, 20], [-35, 15], [5, 35], [30, -15]] : [[-30, -25], [5, -30], [30, -5], [-25, 10], [0, 5], [25, 25], [-5, 32], [-38, -3]];
-    for (const [dx, dy] of pts) s += small ? `<polygon points="${cx + dx},${70 + dy - 8} ${cx + dx + 9},${70 + dy} ${cx + dx},${70 + dy + 8} ${cx + dx - 9},${70 + dy}" fill="#bbb" stroke="#222"/>` : `<polygon points="${cx + dx},${70 + dy - 12} ${cx + dx + 13},${70 + dy - 2} ${cx + dx + 7},${70 + dy + 12} ${cx + dx - 9},${70 + dy + 10} ${cx + dx - 13},${70 + dy - 3}" fill="#ccc" stroke="#222"/>`;
-    if (small) for (let i = 0; i < 70; i++) { const a = i * 2.4, rr = 8 + (i * 7) % 46; s += `<circle cx="${cx + rr * Math.cos(a)}" cy="${70 + rr * Math.sin(a)}" r="1.2" fill="#666"/>`; }
-    return s;
+  // A：斑状組織（細かい石基の中に大きな斑晶）　B：等粒状組織（大きな結晶がすき間なく組み合う）
+  const rockA = cx => {
+    let s = `<defs><clipPath id="rkA"><circle cx="${cx}" cy="76" r="60"/></clipPath></defs><circle cx="${cx}" cy="76" r="60" fill="#d4d4d4"/><g clip-path="url(#rkA)">`;
+    for (let i = 0; i < 260; i++) { const x = cx - 60 + (i * 37) % 120, y = 16 + (i * 53) % 120; s += `<rect x="${x}" y="${y}" width="2" height="1.4" fill="${i % 3 ? "#999" : "#fafafa"}"/>`; }
+    const ph = [[-32, -28, 16, 9, 20, "#fff"], [8, -36, 12, 7, -30, "#fff"], [30, -6, 18, 10, 10, "#fff"], [-20, 18, 14, 8, -15, "#fff"], [14, 30, 10, 6, 40, "#fff"], [-6, -6, 7, 7, 0, "#333"], [-40, 2, 6, 6, 0, "#333"], [34, 24, 6, 6, 0, "#333"]];
+    for (const [dx, dy, w, h, rot, c] of ph) s += c === "#333" ? `<polygon points="${[0, 60, 120, 180, 240, 300].map(a => `${cx + dx + w * Math.cos(a * Math.PI / 180)},${76 + dy + h * Math.sin(a * Math.PI / 180)}`).join(" ")}" fill="#333" stroke="#111"/>` : `<rect x="${cx + dx - w}" y="${76 + dy - h}" width="${2 * w}" height="${2 * h}" fill="${c}" stroke="#222" stroke-width="1.2" transform="rotate(${rot} ${cx + dx} ${76 + dy})"/>`;
+    return s + `</g><circle cx="${cx}" cy="76" r="60" fill="none" stroke="#222" stroke-width="1.5"/>`;
   };
-  const fig = svg(300, 150, crystals(70, true) + crystals(230, false) + lbl(62, 146, "A") + lbl(222, 146, "B"));
+  const rockB = cx => {
+    let s = `<defs><clipPath id="rkB"><circle cx="${cx}" cy="76" r="60"/></clipPath></defs><g clip-path="url(#rkB)">`;
+    const cols = ["#fff", "#f1f1f1", "#bdbdbd", "#fff", "#e6e6e6", "#3a3a3a"];
+    let k = 0;
+    for (let row = 0; row < 6; row++) for (let col = 0; col < 6; col++) {
+      const x0 = cx - 66 + col * 24 + (row % 2) * 12, y0 = 12 + row * 24, j = (row * 7 + col * 5) % 9 - 4;
+      const pts = [[x0 + j, y0], [x0 + 24, y0 + j], [x0 + 26 - j, y0 + 14], [x0 + 22, y0 + 26 + j], [x0 + j, y0 + 24], [x0 - 4, y0 + 12 - j]];
+      s += `<polygon points="${pts.map(p => p.join(",")).join(" ")}" fill="${cols[(k++ * 7) % cols.length]}" stroke="#222" stroke-width="1"/>`;
+    }
+    return s + `</g><circle cx="${cx}" cy="76" r="60" fill="none" stroke="#222" stroke-width="1.5"/>`;
+  };
+  const fig = svg(320, 168, rockA(80) + rockB(240) + lbl(74, 160, "A") + lbl(234, 160, "B"));
   return {
     unit: "ear", title: "火山と火成岩", fig,
     lead: "図は、2種類の火成岩 A、B をルーペで観察してスケッチしたものです。",
@@ -498,15 +567,17 @@ add("ear", "地層", r => {
 
 add("ear", "大地の変動", r => {
   const { ch, word, desc } = mk(r);
-  const fig = svg(380, 170, `
-    <path d="M10 60 L370 60" stroke="#222"/>
-    <path d="M10 60 L190 60 L330 160" fill="none" stroke="#222" stroke-width="2"/>
-    <path d="M190 60 Q230 64 370 120" fill="none" stroke="#222" stroke-width="2"/>
-    <text x="30" y="50" font-size="11">海</text><text x="300" y="50" font-size="11">陸</text>
-    <text x="60" y="100" font-size="12" font-weight="700">プレートP</text><text x="270" y="96" font-size="12" font-weight="700">プレートQ</text>
-    <path d="M90 76 L140 76" stroke="#222" stroke-width="2"/><path d="M134 71 L142 76 L134 81" fill="#222"/>
-    <text x="196" y="80" font-size="11">海溝</text>
-    ${["a", "b", "c"].map((k, i) => `<circle cx="${[210, 250, 300][i]}" cy="${[76, 100, 130][i]}" r="4" fill="#222"/><text x="${[214, 254, 304][i]}" y="${[90, 114, 144][i]}" font-size="11">${k}</text>`).join("")}`);
+  const fig = svg(420, 206, `
+    <path d="M10 50 L250 50 Q232 74 212 76 Q206 72 200 70 L10 70 Z" fill="#dbe9f6"/>
+    <path d="M10 50 L250 50" stroke="#5a7fa8"/>
+    <path d="M10 70 L200 70 Q220 72 240 86 L400 186 L392 198 L232 100 Q214 92 196 92 L10 92 Z" fill="#c9c9c9" stroke="#222" stroke-width="1.5"/>
+    <path d="M212 76 Q232 74 250 50 L300 40 L410 36 L410 140 L326 140 L240 86 Q226 78 212 76 Z" fill="#e9dfcc" stroke="#222" stroke-width="1.5"/>
+    <text x="40" y="64" font-size="12">海（太平洋側）</text><text x="318" y="30" font-size="12">日本列島（陸）</text>
+    <text x="24" y="86" font-size="12" font-weight="700">プレートP</text><text x="340" y="96" font-size="12" font-weight="700">プレートQ</text>
+    <path d="M110 81 L160 81" stroke="#222" stroke-width="2"/><path d="M154 76 L164 81 L154 86" fill="#222"/>
+    <path d="M262 140 L306 168" stroke="#222" stroke-width="2"/><path d="M298 170 L309 170 L304 161" fill="#222"/>
+    ${line(210, 78, 186, 118)}<text x="164" y="132" font-size="12">海溝</text>
+    ${["a", "b", "c"].map((k, i) => `<circle cx="${[252, 292, 350][i]}" cy="${[96, 121, 158][i]}" r="4.5" fill="#d33" stroke="#222"/><text x="${[258, 298, 356][i]}" y="${[92, 117, 154][i]}" font-size="12" font-weight="700">${k}</text>`).join("")}`);
   return {
     unit: "ear", title: "大地の変動", fig,
     lead: "図は、日本列島付近の地下のようすを模式的に表したものです。",
@@ -545,14 +616,7 @@ add("bio", "生物の観察とスケッチ", r => {
 add("mat", "ガスバーナーの使い方", r => {
   const { ch, word, desc, order } = mk(r);
   return {
-    unit: "mat", title: "ガスバーナーの使い方", fig: svg(200, 190, `
-      <rect x="70" y="20" width="24" height="110" fill="#eee" stroke="#222"/>
-      <rect x="64" y="96" width="36" height="12" fill="#ccc" stroke="#222"/>
-      <rect x="62" y="122" width="40" height="12" fill="#ccc" stroke="#222"/>
-      <path d="M40 160 L124 160 L112 134 L52 134 Z" fill="#ddd" stroke="#222"/>
-      <path d="M124 150 L170 150" stroke="#222" stroke-width="4"/>
-      <circle cx="160" cy="150" r="6" fill="#fff" stroke="#222"/>
-      ${line(100, 102, 140, 90)}${lbl(144, 94, "X")}${line(102, 128, 140, 120)}${lbl(144, 124, "Y")}${line(166, 156, 180, 172)}${lbl(176, 186, "元栓")}`),
+    unit: "mat", title: "ガスバーナーの使い方", fig: svg(270, 262, figBurner()),
     lead: "図は、ガスバーナーを表したものです。X、Y は2つの調節ねじです。",
     items: [
       word("X、Y の調節ねじは、それぞれ何の量を調節するか。", "X 空気　Y ガス", "上のねじが空気調節ねじ、下のねじがガス調節ねじです。"),
@@ -646,10 +710,16 @@ add("ear", "地震のグラフ", r => {
 
 add("ear", "火山の形と噴出物", r => {
   const { ch, word, desc } = mk(r);
-  const fig = svg(420, 110, `
-    <path d="M10 100 Q70 30 130 100 Z" fill="#ddd" stroke="#222"/>${lbl(64, 104, "A")}
-    <path d="M150 100 L210 30 L270 100 Z" fill="#ddd" stroke="#222"/>${lbl(204, 104, "B")}
-    <path d="M290 100 Q350 80 410 100 Z" fill="#ddd" stroke="#222"/>${lbl(344, 104, "C")}`);
+  const fig = svg(440, 130, `
+    <path d="M10 110 L430 110" stroke="#222" stroke-width="1.2"/>
+    <path d="M20 110 Q30 40 74 36 Q118 40 128 110 Z" fill="#e3e0da" stroke="#222" stroke-width="1.5"/>
+    <path d="M44 100 Q50 60 62 46 M74 104 L74 40 M104 100 Q98 60 86 46" fill="none" stroke="#999" stroke-width=".8"/>
+    <path d="M150 110 Q196 92 216 34 L228 34 Q248 92 294 110 Z" fill="#cfcac2" stroke="#222" stroke-width="1.5"/>
+    <path d="M216 34 Q222 40 228 34" fill="none" stroke="#222"/>
+    <path d="M180 104 Q206 80 214 46 M260 104 Q238 80 230 46" fill="none" stroke="#999" stroke-width=".8"/>
+    <path d="M306 110 Q330 98 360 92 L376 92 Q406 98 430 110 Z" fill="#8f8a84" stroke="#222" stroke-width="1.5"/>
+    <path d="M360 92 Q368 96 376 92" fill="none" stroke="#222"/>
+    ${lbl(68, 126, "A")}${lbl(216, 126, "B")}${lbl(362, 126, "C")}`);
   return {
     unit: "ear", title: "火山の形と噴出物", fig,
     lead: "図の A〜C は、形の異なる3つの火山を模式的に表したものです。",
