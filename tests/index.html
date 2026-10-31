@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="../assets/favicon.png">
 <title>定期テスト自動作成</title>
-<meta name="ver" content="4">
+<meta name="ver" content="5">
 <meta name="description" content="単元を選ぶだけで、100点満点の定期テスト・単元テストを自動作成。解答用紙・解答と解説つき、A4で印刷できます。中学1年〜3年の理科、中2英語（リスニングつき）など。クロラボのオリジナル問題です。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -351,7 +351,7 @@ const qText = it => it.qHtml || esc(it.q);
 
 function scriptHtml(T) {
   let no = 0;
-  const parts = T.dqs.map((g, gi) => g.script ? `<section class="dq script"><h3><span class="num">${gi + 1}</span>${esc(g.title)}</h3>${(g.scriptIntro ? `<p class="say ja">${esc(g.scriptIntro)}</p>` : "")}${g.script.map(b => `<p class="say ja"><b>${esc(b.title)}</b></p>${b.lines.map(l => `<p class="say en">${l.who ? `<b>${esc(l.who)}:</b> ` : ""}${esc(l.en)}</p>`).join("")}<p class="say pause">（2回くり返す）</p>`).join("")}</section>` : "").join("");
+  const parts = T.dqs.map((g, gi) => g.script ? `<section class="dq script"><h3><span class="num">${gi + 1}</span>${esc(g.title)}</h3>${(g.scriptIntro ? `<p class="say ja">${esc(g.scriptIntro)}</p>` : "")}${g.script.map(b => `<p class="say ja"><b>${esc(b.title)}</b></p>${b.lines.map(l => l.chime ? `<p class="say pause">（チャイム音）</p>` : `<p class="say en">${l.who ? `<b>${esc(l.who)}:</b> ` : ""}${esc(l.en)}</p>${l.pause ? `<p class="say pause">（2回目のあと、${l.pause}秒ほど間をとる）</p>` : ""}`).join("")}<p class="say pause">（2回くり返す）</p>`).join("")}</section>` : "").join("");
   return parts;
 }
 
@@ -436,16 +436,43 @@ function tateRender(T) {
 /* ---------- リスニングの読み上げ（Web Speech API） ---------- */
 let speakQ = [], speaking = false;
 function voices() { const v = speechSynthesis.getVoices(); return { en: v.filter(x => /^en[-_]US/i.test(x.lang)).concat(v.filter(x => /^en/i.test(x.lang) && !/^en[-_]US/i.test(x.lang))), ja: v.filter(x => /^ja/i.test(x.lang)) }; }
-function utter(text, lang, who, rate) {
+// 話し手の性別（名前・役から判断）。女性は高め、男性は低めの声にし、男女で別の音声を選ぶ
+const FEM = /^(Woman|Girl|Mother|Mom|Ms|Mrs|Emily|Lisa|Kate|Meg|Amy|Saki|Yuki|Aya|Mika|Emi)\b/;
+const VF = /Zira|Samantha|Female|Google US English|Aria|Jenny|Susan|Karen|Moira|Tessa|Victoria|Allison|Ava|Serena|Kyoko|Haruka|Ayumi|Nanami/i;
+const VM = /David|Mark|Alex|Fred|Male|Guy|Daniel|Aaron|Tom|Rishi|Ichiro|Keita|Otoya/i;
+// idx：その対話で何人目の話し手か。同じ性別の2人目は別の音声・高さにして聞き分けられるようにする
+function pickVoice(list, fem, idx) {
+  const want = list.filter(x => (fem ? VF : VM).test(x.name) && !(fem ? VM : VF).test(x.name));
+  if (want.length) return want[idx % want.length];
+  return list.length > 1 ? list[fem ? 0 : 1] : list[0];
+}
+function utter(text, lang, who, rate, idx = 0) {
   return new Promise(ok => {
     const u = new SpeechSynthesisUtterance(text), V = voices();
     u.lang = lang === "en" ? "en-US" : "ja-JP"; u.rate = lang === "en" ? rate : 1;
     const list = lang === "en" ? V.en : V.ja;
-    if (list.length) { const k = who ? (who.charCodeAt(0) + who.length) % Math.min(2, list.length) : 0; u.voice = list[k]; }
-    if (lang === "en" && who) u.pitch = /^(Woman|Girl|Emily|Meg|Ms|Lisa|Kate|Amy|Mother|Mom|Saki|Yuki|Aya|Mika)/.test(who) ? 1.25 : 0.9;
+    const fem = who ? FEM.test(who) : false;
+    if (list.length) u.voice = who ? pickVoice(list, fem, idx) : list[0];
+    if (lang === "en" && who) u.pitch = fem ? (idx % 2 ? 1.05 : 1.25) : (idx % 2 ? 1.0 : 0.8);
     u.onend = u.onerror = () => ok(); speechSynthesis.speak(u);
   });
 }
+// チャイム（ピンポーン）を Web Audio で鳴らす
+function chime() {
+  return new Promise(ok => {
+    try {
+      const C = window.AudioContext || window.webkitAudioContext; const ac = new C();
+      [[784, 0], [622, 0.45]].forEach(([f, t]) => {
+        const o = ac.createOscillator(), g = ac.createGain(); o.type = "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, ac.currentTime + t); g.gain.exponentialRampToValueAtTime(0.35, ac.currentTime + t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + t + 1.1);
+        o.connect(g); g.connect(ac.destination); o.start(ac.currentTime + t); o.stop(ac.currentTime + t + 1.2);
+      });
+      setTimeout(() => { ac.close(); ok(); }, 1700);
+    } catch (e) { ok(); }
+  });
+}
+// 台本の見出し「(1)」は「1番」と読む
+const sayTitle = t => t.replace(/^\((\d+)\)$/, "$1番").replace(/^No\.\s*(\d+)$/, "$1番");
 const wait = s => new Promise(ok => setTimeout(ok, s * 1000));
 async function play(T, only) {
   if (!("speechSynthesis" in window)) { alert("このブラウザでは読み上げが使えません。台本を先生が読んでください。"); return; }
@@ -458,8 +485,15 @@ async function play(T, only) {
     for (const b of g.script) {
       for (let rep = 0; rep < 2; rep++) {
         if (!speaking) return;
-        await utter(b.title + (rep ? "。もう一度読みます。" : ""), "ja"); await wait(0.6);
-        for (const l of b.lines) { if (!speaking) return; await utter(l.en, "en", l.who, rate); await wait(0.5); }
+        const tt = sayTitle(b.title || "");
+        if (tt || rep) { await utter((tt ? tt + "。" : "") + (rep ? "もう一度読みます。" : ""), "ja"); await wait(0.6); }
+        const sex = {}, cnt = { f: 0, m: 0 };
+        for (const l of b.lines) if (l.who && !(l.who in sex)) { const g = FEM.test(l.who) ? "f" : "m"; sex[l.who] = cnt[g]++; }
+        for (const l of b.lines) {
+          if (!speaking) return;
+          if (l.chime) { await chime(); await wait(rep ? 1 : 0.5); continue; }
+          await utter(l.en, "en", l.who, rate, l.who ? sex[l.who] : 0); await wait(l.pause && rep ? l.pause : 0.5);
+        }
         await wait(rep ? 5 : 2.5);
       }
     }

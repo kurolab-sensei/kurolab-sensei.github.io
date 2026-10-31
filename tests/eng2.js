@@ -76,7 +76,7 @@ const L1GEN = {
     const ks = ["sun", "cloud", "rain", "snow"].filter(k => k !== "snow" || r() < 0.5);
     const [am, pm] = shuffle(["sun", "cloud", "rain"]);
     const W = { sun: "sunny", cloud: "cloudy", rain: "rainy", snow: "snowy" };
-    const place = pick(["Kyoto", "Sapporo", "Nagano", "your town"]);
+    const place = pick(["Kyoto", "Sapporo", "Nagano", "Osaka"]);
     const ask = pick(["morning", "afternoon"]);
     const right = ask === "morning" ? am : pm;
     const lines = [
@@ -109,25 +109,29 @@ const L1GEN = {
     const say = { on: "on the desk", under: "under the desk", chair: "on the chair", bag: "in my bag" };
     const [first, right] = pos;
     const lines = [
-      { who: p.jp, en: `Mom, have you seen my key? I put it ${say[first]}, but it's not there now.` },
+      { who: p.jp, en: `Mom, I can't find my key. I put it ${say[first]}, but it's not there now.` },
       { who: "Mother", en: `Did you look ${say[right] === "in my bag" ? "in your bag" : say[right]}? I saw something there this morning.` },
       { who: p.jp, en: `Oh, here it is! Thank you.` }
     ];
     return { item: pch("対話と質問を聞いて、質問の答えとして最も適切な絵を、" + SEL_EN, desk(right), pos.slice(0, 1).concat(pos.slice(2)).map(desk), `最初に置いた場所（${say[first]}）にはなく、母親が見た場所で見つかりました。`), lines: [...lines, { en: `Question: Where did ${p.jp} find ${his(p.jpg)} key?` }] };
   },
   transport: (r, K) => {
-    const { pick, shuffle, pch } = K; const p = people(r, pick);
-    const [usual, right] = shuffle(["bike", "bus", "walk"]).slice(0, 2);
+    const { pick, pch } = K; const p = people(r, pick);
     const say = { bike: "by bike", bus: "by bus", walk: "on foot", car: "by car" };
-    const reason = usual === "bike" ? pick(["it was raining hard", "my bike was broken"]) : pick(["it was raining hard", "I got up late", "my bag was very heavy"]);
-    const r2 = r() < 0.5 ? "car" : right;
+    // [いつも, 今日, 理由]（理由と手段が自然につながる組み合わせだけ）
+    const [usual, today, reason] = pick([
+      ["bike", "bus", "my bike was broken"], ["bike", "walk", "my bike was broken"], ["bike", "car", "it was raining hard"],
+      ["bus", "bike", "I got up late and missed the bus"], ["bus", "car", "I got up late"],
+      ["walk", "bus", "it was raining hard"], ["walk", "car", "my bag was very heavy"], ["walk", "bike", "I got up late"]
+    ]);
     const lines = [
       { who: p.fr[0], en: `${p.jp}, how did you come to school today?` },
-      { who: p.jp, en: `I usually come ${say[usual]}, but ${reason}, so I came ${say[r2]}${r2 === "car" ? ". My father took me" : ""}.` },
-      { who: p.fr[0], en: `I see.` }
+      { who: p.jp, en: `I usually come ${say[usual]}, but ${reason}, so I came ${say[today]}${today === "car" ? ". My father took me" : ""}.` },
+      { who: p.fr[0], en: `I see. Will you go home ${say[usual]}?` },
+      { who: p.jp, en: today === "car" ? `No. My father will come to pick me up.` : `No. I'll go home ${say[today]}, too.` }
     ];
-    const opts = ["bike", "bus", "walk", "car"].filter(k => k !== r2);
-    return { item: pch("対話と質問を聞いて、質問の答えとして最も適切な絵を、" + SEL_EN, trPic(r2), opts.map(trPic), `いつもは ${say[usual]} ですが、今日は ${say[r2]} で来ました。`), lines: [...lines, { en: `Question: How did ${p.jp} come to school today?` }] };
+    const opts = ["bike", "bus", "walk", "car"].filter(k => k !== today);
+    return { item: pch("対話と質問を聞いて、質問の答えとして最も適切な絵を、" + SEL_EN, trPic(today), opts.map(trPic), `いつもは ${say[usual]} ですが、${reason} という理由で、今日は ${say[today]} で来ました。usually（いつもは）の手段を選ばないように注意します。`), lines: [...lines, { en: `Question: How did ${p.jp} come to school today?` }] };
   },
   doing: (r, K) => {
     const { pick, shuffle, pch } = K; const p = people(r, pick);
@@ -144,14 +148,17 @@ const L1GEN = {
   },
   shirt: (r, K) => {
     const { pick, pch } = K; const p = people(r, pick);
-    const mark = pick(["star", "heart"]), other = mark === "star" ? "heart" : "star", n = pick([1, 2]);
+    const mark = pick(["star", "heart"]), other = mark === "star" ? "heart" : "star";
+    const fam = pick([["brother", "He", "him"], ["sister", "She", "her"]]);
+    const buyTwo = r() < 0.5; // 店員が最初にすすめるのは「2つ」の方。買うのは buyTwo ? 2 : 1
+    const n = buyTwo ? 2 : 1;
     const lines = [
       { who: "Clerk", en: `May I help you?` },
-      { who: p.jp, en: `I'm looking for a T-shirt for my ${pick(["brother", "sister"])}. I like this one with ${n === 1 ? "two" : "one"} ${mark}${n === 1 ? "s" : ""}.` },
-      { who: "Clerk", en: `We also have one with ${n === 1 ? "only one" : "two"} ${mark}${n === 2 ? "s" : ""}. It's more popular.` },
-      { who: p.jp, en: `Oh, that's nice. I'll take it.` }
+      { who: p.jp, en: `Yes. I'm looking for a T-shirt for my ${fam[0]}. ${fam[1]} likes ${mark}s.` },
+      { who: "Clerk", en: `How about this one with two ${mark}s? We also have one with only one ${mark}, and one with ${other}s.` },
+      { who: p.jp, en: buyTwo ? `Well, the one with one ${mark} is nice, but ${fam[0] === "brother" ? "he" : "she"} likes big designs. I'll take the first one.` : `Hmm, the first one is nice, but ${fam[0] === "brother" ? "he" : "she"} likes simple designs. I'll take the other ${mark} one.` }
     ];
-    return { item: pch("対話と質問を聞いて、質問の答えとして最も適切な絵を、" + SEL_EN, shirt(mark, n), [shirt(mark, 3 - n), shirt(other, n), shirt(other, 3 - n)], `店員がすすめた方（${n === 1 ? "1つ" : "2つ"}の ${mark}）を買いました。`), lines: [...lines, { en: `Question: Which T-shirt will ${p.jp} buy?` }] };
+    return { item: pch("対話と質問を聞いて、質問の答えとして最も適切な絵を、" + SEL_EN, shirt(mark, n), [shirt(mark, 3 - n), shirt(other, n), shirt(other, 3 - n)], `${mark} が好きな${fam[0] === "brother" ? "弟（兄）" : "妹（姉）"}へのプレゼントです。店員が最初にすすめたのは ${mark} が2つのTシャツ。${buyTwo ? "「最初のもの（the first one）」" : "「もう一方の " + mark + " のもの（the other " + mark + " one）」"}を買うので、${n === 1 ? "1つ" : "2つ"}の ${mark} です。`), lines: [...lines, { en: `Question: Which T-shirt will ${p.jp} buy?` }] };
   },
   sport: (r, K) => {
     const { pick, shuffle, pch } = K; const p = people(r, pick);
@@ -167,22 +174,25 @@ const L1GEN = {
   }
 };
 
-const LISTEN_LEAD = n => `これから、${n}つの対話を放送します。それぞれの対話のあとに、英語で質問をします。`;
+const LISTEN_LEAD = n => `これから、(1)〜(${n})の${n}つの対話を放送します。それぞれの対話のあとに、英語で質問をします。`;
 
 /* ---------- 応答を選ぶ（チャイムの部分に入る文） ---------- */
+// 3行の対話（A→B→A）のあと、チャイムで B の応答を選ぶ。who は [Aの役, Bの役]、ja は最後の発言の訳（解説用）
 const RESP = [
-  r => ({ lines: [["A", "Have you finished your homework?"], ["B", "Not yet. It's difficult."], ["A", "Shall I help you?"]], right: "Yes, please. Thank you.", wr: ["No, I didn't.", "Yes, I have.", "I'm fine, thank you."] }),
-  r => ({ lines: [["A", "Excuse me. How can I get to the station?"], ["B", "Go straight and turn left at the second corner."], ["A", "How long does it take?"]], right: "About five minutes.", wr: ["It's two hundred yen.", "At the second corner.", "By bus."] }),
-  r => ({ lines: [["A", "This cake is really good."], ["B", "Thank you. I made it with my sister."], ["A", "Can you tell me how to make it?"]], right: "Sure. It's easy.", wr: ["Yes, I made it.", "No, it's not mine.", "It's under the table."] }),
-  r => ({ lines: [["A", "You look tired."], ["B", "I studied until midnight last night."], ["A", "You should go to bed early today."]], right: "You're right. I will.", wr: ["Yes, I did.", "I'm studying now.", "It was midnight."] }),
-  r => ({ lines: [["A", "Whose umbrella is this?"], ["B", "I don't know. It has a name on it."], ["A", "Oh, it says Tanaka."]], right: "Then it's Mr. Tanaka's.", wr: ["Yes, it's raining.", "I have two umbrellas.", "It's blue."] }),
-  r => ({ lines: [["A", "I'm going to visit Okinawa next month."], ["B", "Wow! Have you ever been there?"], ["A", "No, this will be my first time."]], right: "I hope you'll enjoy it.", wr: ["I went there yesterday.", "Yes, I have been there twice.", "It's next month."] }),
-  r => ({ lines: [["A", "Can I borrow your dictionary?"], ["B", "Sorry, I'm using it now."], ["A", "When will you finish?"]], right: "In ten minutes.", wr: ["For ten years.", "Ten dictionaries.", "Yesterday."] }),
-  r => ({ lines: [["A", "What are you going to do this weekend?"], ["B", "I'm going to see a movie. Do you want to come?"], ["A", "I'd love to. Which movie?"]], right: "A new movie about space.", wr: ["At the station.", "On Sunday afternoon.", "With my brother."] }),
-  r => ({ lines: [["A", "Hello. This is Yuki. May I speak to Emily?"], ["B", "Sorry, she's out now."], ["A", "I see."]], right: "Can I leave a message?", wr: ["Speaking.", "You're welcome.", "Here you are."] }),
-  r => ({ lines: [["A", "How was the school festival?"], ["B", "It was great. Our class sang a song."], ["A", "Who played the piano?"]], right: "Saki did. She was great.", wr: ["We sang a song.", "It was last Saturday.", "In the gym."] }),
-  r => ({ lines: [["A", "I lost my pen."], ["B", "What color is it?"], ["A", "It's black and white."]], right: "Is this yours? I found it by the door.", wr: ["I like black.", "It's not my bag.", "You can buy one."] }),
-  r => ({ lines: [["A", "Mom, I'm hungry."], ["B", "Dinner will be ready soon."], ["A", "What are we having?"]], right: "Curry and rice.", wr: ["At seven.", "In the kitchen.", "I'm cooking."] })
+  { who: ["Girl", "Boy"], lines: ["Did you finish your homework?", "Not yet. The math questions are difficult.", "Shall I help you?"], ja: "手伝おうか？", right: "Yes, please. Thank you.", wr: ["No, I didn't.", "Yes, it is difficult.", "I'm fine, thank you."] },
+  { who: ["Man", "Girl"], lines: ["Excuse me. How can I get to the station?", "Go straight and turn left at the second corner.", "How long does it take from here?"], ja: "ここからどのくらい時間がかかりますか。", right: "About five minutes.", wr: ["It's two hundred yen.", "Turn left at the second corner.", "By bus."] },
+  { who: ["Boy", "Girl"], lines: ["This cake is really good.", "Thank you. I made it with my sister.", "Can you tell me how to make it?"], ja: "作り方を教えてくれる？", right: "Sure. It's easy.", wr: ["Yes, I made it yesterday.", "No, my sister ate it.", "It was really good."] },
+  { who: ["Woman", "Boy"], lines: ["You look tired, Ken.", "I studied until midnight last night.", "You should go to bed early today."], ja: "今日は早く寝たほうがいいよ。", right: "You're right. I will.", wr: ["Yes, I did.", "I'm studying now.", "It was midnight."] },
+  { who: ["Girl", "Boy"], lines: ["Let's go to the park after school.", "Sorry, I can't. I have to take care of my little brother today.", "Oh, I see. Then how about tomorrow?"], ja: "じゃあ、明日はどう？", right: "OK. Tomorrow is fine.", wr: ["Yes, I went to the park.", "He is five years old.", "I have a little brother."] },
+  { who: ["Girl", "Boy"], lines: ["I'm going to visit Okinawa next month.", "Wow! Is this your first time?", "Yes. I'm so excited."], ja: "うん。すごくわくわくしているよ。", right: "I hope you'll have a good time.", wr: ["You're welcome.", "It's next month.", "No, it isn't."] },
+  { who: ["Boy", "Girl"], lines: ["Can I use your dictionary?", "Sorry, I'm using it now.", "When will you finish?"], ja: "いつ終わる？", right: "In ten minutes.", wr: ["For ten years.", "Yes, I will.", "Yesterday."] },
+  { who: ["Girl", "Boy"], lines: ["What are you going to do this weekend?", "I'm going to see a movie. Do you want to come with me?", "I'd love to. What time will we meet?"], ja: "行きたい。何時に会う？", right: "At ten in the morning.", wr: ["At the station.", "A movie about space.", "With my brother."] },
+  { who: ["Boy", "Woman"], lines: ["Hello. This is Takeshi. May I speak to Emily, please?", "Sorry, she's out now.", "When will she come back?"], ja: "いつ帰ってきますか。", right: "In about an hour.", wr: ["Speaking.", "Yes, she will.", "She is fine, thank you."] },
+  { who: ["Mother", "Girl"], lines: ["How was the school festival?", "It was great. Our class sang a song.", "Who played the piano?"], ja: "だれがピアノをひいたの？", right: "Saki did. She was great.", wr: ["We sang a song.", "It was last Saturday.", "In the gym."] },
+  { who: ["Boy", "Girl"], lines: ["I can't find my pen.", "What color is it?", "It's black and white."], ja: "黒と白だよ。", right: "Is this yours? It was under your desk.", wr: ["I like black.", "Yes, I can.", "It's not my bag."] },
+  { who: ["Boy", "Mother"], lines: ["Mom, I'm hungry.", "Dinner will be ready soon.", "What are we having?"], ja: "何を食べるの？", right: "Curry and rice.", wr: ["At seven.", "In the kitchen.", "Yes, I'm hungry, too."] },
+  { who: ["Clerk", "Girl"], lines: ["May I help you?", "Yes. I'm looking for a cap.", "How about this one?"], ja: "こちらはいかがですか。", right: "It's nice. How much is it?", wr: ["You're welcome.", "Yes, I am.", "It's on my head."] },
+  { who: ["Girl", "Boy"], lines: ["Did you watch the soccer game on TV last night?", "No, I was busy. Which team won?", "Our town's team did."], ja: "わたしたちの町のチームが勝ったよ。", right: "Really? That's great!", wr: ["No, I didn't.", "I play soccer every day.", "At eight last night."] }
 ];
 
 /* ---------- リスニングの大問 ---------- */
@@ -193,18 +203,19 @@ const L1PICS = (key, title) => r => {
   return {
     unit: "listen", title, lead: LISTEN_LEAD(outs.length) + "質問の答えとして最も適切な絵を、それぞれ ア〜エ から一つ選び、記号で答えなさい。",
     items: outs.map(o => ({ ...o.item, q: "" })),
-    script: outs.map((o, i) => ({ title: `No. ${i + 1}`, lines: o.lines })),
+    script: outs.map((o, i) => ({ title: `(${i + 1})`, lines: o.lines })),
     scriptIntro: "（絵を見て答える問題）"
   };
 };
+const ROLE_JA = { Girl: "女の子", Boy: "男の子", Woman: "女性", Man: "男性", Mother: "母親", Clerk: "店員" };
 const L1RESP = r => {
   const K = mk(r);
-  const qs = K.sample(RESP, 4).map(f => f(r));
+  const qs = K.sample(RESP, 4);
   return {
     unit: "listen", title: "リスニング（対話の応答）",
-    lead: "これから、4つの対話を放送します。それぞれの対話の最後の文のあとにチャイムが鳴ります。チャイムのところに入る応答として最も適切なものを、それぞれ ア〜エ から一つ選び、記号で答えなさい。",
-    items: qs.map(d => ({ ...K.ch("", d.right, d.wr, `最後の発言「${d.lines[d.lines.length - 1][1]}」への応答を考えます。`), q: "" })),
-    script: qs.map((d, i) => ({ title: `No. ${i + 1}`, lines: [...d.lines.map(([w, t]) => ({ who: w === "A" ? "Woman" : "Man", en: t })), { en: "(チャイム)" }] }))
+    lead: "これから、(1)〜(4)の4つの対話を放送します。それぞれの対話の最後の発言のあとに、チャイムが鳴ります。チャイムのところに入る応答として最も適切なものを、それぞれ ア〜エ から一つ選び、記号で答えなさい。",
+    items: qs.map(d => ({ ...K.ch("", d.right, d.wr, `最後の発言「${d.lines[2]}（${d.ja}）」に対する、${ROLE_JA[d.who[1]]}の応答を選びます。`), q: "" })),
+    script: qs.map((d, i) => ({ title: `(${i + 1})`, lines: [...d.lines.map((t, j) => ({ who: d.who[j % 2], en: t })), { chime: true, en: "（チャイム）" }] }))
   };
 };
 // 大問2：スピーチやお知らせを聞いてメモを完成させる
@@ -243,7 +254,7 @@ const SPEECH = [
     return {
       speaker: n, text: `Hi, I'm ${n}. I came to Japan from Canada ${y} years ago. In Canada, I lived with two ${anim} and my family. Now I live with a host family in this town. Last month, my host mother took me to a cooking class. I learned how to make miso soup. It was difficult at first, but I made it well in the end. My host family said it was delicious, and I was very happy. Next month, I'm going to cook miso soup for my family in Canada on the internet. I want to tell them about Japanese food.`,
       qs: [
-        ["How long has she been in Japan?", `For ${NUMW[y]} years.`, [`For ${NUMW[y + 1]} years.`, "For one month.", "Since last month."]],
+        ["When did she come to Japan?", `She came ${NUMW[y]} years ago.`, [`She came ${NUMW[y + 1]} years ago.`, "She came last month.", "She will come next month."]],
         ["What did she learn in the cooking class?", "She learned how to make miso soup.", ["She learned how to eat sushi.", "She learned about Canada.", "She learned how to use the internet."]],
         ["What is she going to do next month?", "She is going to cook miso soup for her family in Canada on the internet.", ["She is going to go back to Canada.", "She is going to take a cooking class again.", "She is going to visit her host mother."]]
       ],
@@ -285,7 +296,7 @@ const L2SPEECH = r => {
       ...s.qs.map(([q, a, w]) => ({ ...K.ch(`Question: ${q}`, a, w, ""), qHtml: `<span class="en-q">${q.replace(/</g, "&lt;")}</span>` })),
       { ...K.desc(`Question: ${s.write[0]}`, s.write[1], s.write[2], ""), qHtml: `<span class="en-q">${s.write[0]}</span>（英語で答えなさい）` }
     ],
-    script: [{ title: "", lines: [{ who: s.speaker, en: s.text }, ...s.qs.map(([q], i) => ({ en: `Question ${i + 1}: ${q}` })), { en: `Question 4: ${s.write[0]}` }] }]
+    script: [{ title: "", lines: [{ who: s.speaker, en: s.text }, ...s.qs.map(([q], i) => ({ en: `Question ${i + 1}: ${q}`, pause: 6 })), { en: `Question 4: ${s.write[0]}`, pause: 10 }] }]
   };
 };
 
