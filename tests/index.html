@@ -52,6 +52,11 @@ body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-heig
 .btn.main { background: var(--gold); border-color: var(--gold); color: var(--ink); }
 .btn:focus-visible { outline: 3px solid var(--chalk); outline-offset: 2px; }
 .note { font-size: 12px; color: var(--chalk-dim); }
+.units { display: grid; gap: 6px; }
+.urow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.urow .seg { flex: 1 1 240px; }
+.urow select, .panel select { font: inherit; font-size: 14px; border-radius: 8px; border: 0; padding: 4px 8px; color: var(--ink); }
+.urow small { font-size: 12px; color: var(--chalk-dim); }
 .summary { font-size: 14px; color: var(--ink-soft); margin: 0 0 10px; }
 
 /* paper */
@@ -126,7 +131,21 @@ body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-heig
         <label><input type="radio" name="mode" value="unit"><span>単元別テスト</span></label>
       </div>
     </div>
-    <div class="row"><span id="unitLabel">出題する単元（複数選べます）</span><div class="seg" id="units"></div></div>
+    <div class="row"><span>難易度</span>
+      <div class="seg" id="lvSeg">
+        <label><input type="radio" name="lv" value="2" checked><span>入試レベル（資料の読み取り・計算・考察）</span></label>
+        <label><input type="radio" name="lv" value="1"><span>基本〜標準</span></label>
+        <label><input type="radio" name="lv" value="0"><span>両方まぜる</span></label>
+      </div>
+    </div>
+    <div class="row"><span id="unitLabel">単元ごとの大問の数（0 にした単元は出題しません）</span><div class="units" id="units"></div></div>
+    <div class="row"><span>1つの大問の小問の数</span>
+      <div class="seg" id="perSeg">
+        <label><input type="radio" name="per" value="99" checked><span>すべて（5〜8問）</span></label>
+        <label><input type="radio" name="per" value="5"><span>5問まで</span></label>
+        <label><input type="radio" name="per" value="4"><span>4問まで</span></label>
+      </div>
+    </div>
     <div class="row"><span>テストの名前</span><input type="text" id="title" value="2学期 中間テスト"></div>
     <div class="row"><span>つけるもの</span>
       <div class="seg">
@@ -139,7 +158,7 @@ body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-heig
       <button class="btn" id="remake" type="button">別の問題で作り直す</button>
       <button class="btn" id="print" type="button">印刷する（A4）</button>
     </div>
-    <p class="note">難易度は県立高校入試の基本〜標準レベル（用語・計算・グラフ読み取り・記述）。テスト番号を控えておけば、同じテストをもう一度作れます：<input type="number" id="seed" style="width:120px;display:inline-block;padding:2px 6px" aria-label="テスト番号"></p>
+    <p class="note">入試レベルは、各県の公立高校入試で正答率が下がりやすい「資料の読み取り・条件を整理する計算・理由の説明」を中心にしたクロラボのオリジナル問題です。テスト番号を控えておけば、同じテストをもう一度作れます：<input type="number" id="seed" style="width:120px;display:inline-block;padding:2px 6px" aria-label="テスト番号"></p>
   </section>
 
   <p class="summary" id="summary"></p>
@@ -159,12 +178,32 @@ const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", 
 const data = () => window.KUROTEST[document.querySelector("input[name=subj]:checked").value];
 const mode = () => document.querySelector("input[name=mode]:checked").value;
 
+const lv = () => +document.querySelector("input[name=lv]:checked").value;
+const pool = u => data().templates.filter(t => t.unit === u && (lv() === 0 || t.lv === lv()));
+
 function renderUnits() {
   const d = data(), m = mode();
-  $("unitLabel").textContent = m === "term" ? "出題する単元（複数選べます）" : "単元（1つ選ぶ）";
-  $("units").innerHTML = Object.entries(d.units).map(([k, v], i) =>
-    `<label><input type="${m === "term" ? "checkbox" : "radio"}" name="unit" value="${k}" ${m === "term" ? (i < 2 ? "checked" : "") : (i === 0 ? "checked" : "")}><span>${v}</span></label>`).join("");
-  $("title").value = m === "term" ? "2学期 中間テスト" : "単元テスト";
+  const keep = {};
+  document.querySelectorAll("#units select").forEach(x => keep[x.dataset.u] = +x.value);
+  const opt = (u, def) => { const n = pool(u).length; const v = Math.min(keep[u] ?? def, n); return Array.from({ length: n + 1 }, (_, i) => `<option value="${i}" ${i === v ? "selected" : ""}>${i}</option>`).join(""); };
+  if (m === "term") {
+    $("unitLabel").textContent = "単元ごとの大問の数（0 にした単元は出題しません）";
+    $("units").innerHTML = Object.entries(d.units).map(([k, v], i) =>
+      `<div class="urow"><div class="seg"><label><input type="checkbox" name="unit" value="${k}" ${(keep[k] ?? (i < 2 ? 3 : 0)) > 0 ? "checked" : ""}><span>${v}</span></label></div><select data-u="${k}" aria-label="${v}の大問の数">${opt(k, i < 2 ? 3 : 0)}</select><small>大問（最大 ${pool(k).length}）</small></div>`).join("");
+  } else {
+    const cur = document.querySelector("input[name=unit]:checked")?.value || Object.keys(d.units)[0];
+    $("unitLabel").textContent = "単元（1つ選ぶ）と大問の数";
+    $("units").innerHTML = `<div class="seg">${Object.entries(d.units).map(([k, v]) => `<label><input type="radio" name="unit" value="${k}" ${k === cur ? "checked" : ""}><span>${v}</span></label>`).join("")}</div>
+      <div class="urow"><select data-u="one" aria-label="大問の数">${Array.from({ length: 10 }, (_, i) => i + 1).map(i => `<option value="${i}" ${i === (keep.one || 5) ? "selected" : ""}>${i}</option>`).join("")}</select><small>大問（足りないときは、その単元の大問をすべて使います）</small></div>`;
+  }
+  // チェックとセレクトを連動させる
+  document.querySelectorAll("#units .urow").forEach(row => {
+    const cb = row.querySelector("input[type=checkbox]"), sel = row.querySelector("select");
+    if (!cb) return;
+    cb.onchange = () => { sel.value = cb.checked ? String(Math.min(3, pool(cb.value).length)) : "0"; make(curSeed()); };
+    sel.onchange = () => { cb.checked = +sel.value > 0; make(curSeed()); };
+  });
+  if (!$("title").dataset.edited) $("title").value = m === "term" ? "2学期 中間テスト" : "単元テスト";
 }
 
 // 配点：重みに比例して100点に配り、端数は最大剰余で調整
@@ -178,21 +217,24 @@ function allot(items) {
 
 function build(seed) {
   const r = rng(seed), d = data(), m = mode();
-  const units = [...document.querySelectorAll("input[name=unit]:checked")].map(x => x.value);
-  if (!units.length) { alert("単元を1つ以上選んでください。"); return null; }
-  let chosen = [];
+  const order = Object.keys(d.units);
+  let want = [];
   if (m === "unit") {
-    chosen = shuffleR(d.templates.filter(t => t.unit === units[0]), r);
+    const u = document.querySelector("input[name=unit]:checked").value;
+    want = [[u, +document.querySelector("#units select").value]];
   } else {
-    const total = units.length === 1 ? 5 : units.length === 4 ? 8 : 6;
-    const pools = units.map(u => shuffleR(d.templates.filter(t => t.unit === u), r));
-    for (let i = 0; chosen.length < total && pools.some(p => p.length); i++) { const p = pools[i % pools.length]; if (p.length) chosen.push(p.shift()); }
-    // 単元の順（教科書の順）に並べる
-    const order = Object.keys(d.units);
-    chosen.sort((a, b) => order.indexOf(a.unit) - order.indexOf(b.unit));
+    want = [...document.querySelectorAll("#units select")].map(x => [x.dataset.u, +x.value]).filter(([, n]) => n > 0);
   }
-  const target = m === "unit" ? 36 : 42;
-  const per = Math.ceil(target / chosen.length);
+  if (!want.length) { alert("大問の数を1以上にした単元を、1つ以上選んでください。"); return null; }
+  let chosen = [];
+  for (const [u, n] of want) {
+    let p = shuffleR(pool(u), r);
+    // 「両方まぜる」は、入試レベルと基本をなるべく交互に
+    if (lv() === 0) { const a = p.filter(t => t.lv === 2), b = p.filter(t => t.lv === 1); p = []; while (a.length || b.length) { if (a.length) p.push(a.shift()); if (b.length) p.push(b.shift()); } }
+    chosen.push(...p.slice(0, n));
+  }
+  chosen.sort((a, b) => order.indexOf(a.unit) - order.indexOf(b.unit) || (a.lv || 1) - (b.lv || 1));
+  const per = +document.querySelector("input[name=per]:checked").value;
   const dqs = chosen.map(t => {
     const g = t.f(r);
     let keep = g.items.map((it, i) => i);
@@ -201,6 +243,7 @@ function build(seed) {
     return g;
   });
   allot(dqs.flatMap(g => g.items));
+  const units = [...new Set(chosen.map(t => t.unit))];
   return { seed, title: $("title").value || "テスト", name: d.name, units: units.map(u => d.units[u]), dqs, mode: m };
 }
 
@@ -224,13 +267,17 @@ function render(T) {
 
 function make(seed) { const T = build(seed); if (T) { $("seed").value = seed; render(T); } }
 const newSeed = () => 10000 + Math.floor(Math.random() * 89999);
+const curSeed = () => Number($("seed").value) || newSeed();
 
 document.querySelectorAll("input[name=mode]").forEach(x => x.onchange = () => { renderUnits(); make(newSeed()); });
-$("units").onchange = () => make(Number($("seed").value) || newSeed());
-$("make").onclick = () => make(Number($("seed").value) || newSeed());
+document.querySelectorAll("input[name=lv]").forEach(x => x.onchange = () => { renderUnits(); make(curSeed()); });
+document.querySelectorAll("input[name=per]").forEach(x => x.onchange = () => make(curSeed()));
+$("units").addEventListener("change", e => { if (mode() === "unit" && (e.target.name === "unit" || e.target.tagName === "SELECT")) make(curSeed()); });
+$("make").onclick = () => make(curSeed());
 $("remake").onclick = () => make(newSeed());
 $("print").onclick = () => window.print();
-$("optSheet").onchange = $("optKey").onchange = $("title").oninput = () => make(Number($("seed").value) || newSeed());
+$("title").addEventListener("input", () => $("title").dataset.edited = "1");
+$("optSheet").onchange = $("optKey").onchange = $("title").oninput = () => make(curSeed());
 renderUnits();
 make(newSeed());
 </script>
