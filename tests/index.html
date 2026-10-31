@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="../assets/favicon.png">
 <title>定期テスト自動作成</title>
-<meta name="description" content="単元を選ぶだけで、100点満点の定期テスト・単元テストを自動作成。解答用紙・解答と解説つき、A4で印刷できます。中学1年理科から。クロラボのオリジナル問題です。">
+<meta name="ver" content="2">
+<meta name="description" content="単元を選ぶだけで、100点満点の定期テスト・単元テストを自動作成。解答用紙・解答と解説つき、A4で印刷できます。中学1年〜3年の理科、中2英語（リスニングつき）など。クロラボのオリジナル問題です。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
@@ -91,6 +92,25 @@ body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-heig
 .items .n { font-family: var(--f-body); font-weight: 700; }
 .items .ch { display: grid; gap: 0 16px; margin-top: 2px; padding-left: 1em; }
 .items .ch.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.items .ch.pics { display: flex; flex-wrap: wrap; gap: 8px 14px; padding-left: 1em; }
+.pic { display: inline-flex; gap: 4px; align-items: flex-start; font-family: var(--f-body); }
+.pic svg { display: block; border: 1px solid #999; border-radius: 4px; }
+.passage { border: 1px solid #555; padding: 8px 12px; margin: 6px 0 8px; line-height: 1.95; }
+.passage p { margin: 0 0 4px; text-indent: 1em; }
+.passage.en { font-family: "Times New Roman", "Hiragino Mincho ProN", serif; font-size: 15px; line-height: 1.7; }
+.passage.en p { text-indent: 1.4em; }
+.passage .pn { font-family: var(--f-body); font-size: 12px; margin-right: 4px; }
+.passage .bl { display: inline-block; min-width: 3em; border-bottom: 1px solid #111; text-align: center; font-family: var(--f-body); font-size: 12px; text-indent: 0; }
+.passage u, .lead u { text-underline-offset: 3px; }
+.en-q { font-family: "Times New Roman", serif; font-size: 15px; }
+.listen-note { font-family: var(--f-body); font-size: 12.5px; border: 1px dashed #555; padding: 4px 8px; margin: 0 0 8px; }
+.script .say { margin: 2px 0; }
+.script .say.en { font-family: "Times New Roman", serif; font-size: 15px; padding-left: 1em; }
+.script .say.ja { font-family: var(--f-body); font-size: 13px; }
+.script .say.pause { color: #777; font-size: 12px; font-family: var(--f-body); }
+.player { background: var(--board-deep); color: var(--chalk); border-radius: 12px; padding: 12px 16px; margin: 0 0 16px; display: grid; gap: 8px; }
+.player p { margin: 0; font-size: 13px; color: var(--chalk-dim); }
+.player .now { color: var(--gold); font-weight: 700; font-size: 14px; }
 .ans-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1.5px solid #111; border-left: 1.5px solid #111; margin-bottom: 14px; }
 .ans-grid .cell { border-right: 1.5px solid #111; border-bottom: 1.5px solid #111; min-height: 46px; padding: 2px 6px; font-family: var(--f-body); font-size: 11px; display: flex; justify-content: space-between; }
 .ans-grid .cell.wide { grid-column: 1 / -1; min-height: 72px; }
@@ -127,11 +147,7 @@ body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-heig
       </div>
     </header>
     <div class="row"><span>教科</span>
-      <div class="seg" id="subj">
-        <label><input type="radio" name="subj" value="sci1" checked><span>中1 理科</span></label>
-        <label><input type="radio" name="subj" disabled><span>中2 理科（準備中）</span></label>
-        <label><input type="radio" name="subj" disabled><span>中3 理科（準備中）</span></label>
-      </div>
+      <div class="seg" id="subj"></div>
     </div>
     <div class="row"><span>テストの種類</span>
       <div class="seg">
@@ -170,53 +186,77 @@ body { color: var(--ink); font-family: var(--f-body); font-size: 15px; line-heig
   </section>
 
   <p class="summary" id="summary"></p>
+  <div class="player noprint" id="player" hidden></div>
   <div id="out"></div>
 </div>
 
+<script src="common.js"></script>
 <script src="sci1.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const KANA = ["ア", "イ", "ウ", "エ"];
 const WEIGHT = { word: 2, choice: 3, order: 3, calc: 4, desc: 5 };
+// 教科の一覧（file は必要になったときに読み込む）
+const SUBJ = [
+  { key: "sci1", label: "中1 理科", file: "sci1.js" },
+  { key: "sci2", label: "中2 理科", file: "sci2.js" },
+  { key: "sci3", label: "中3 理科", file: "sci3.js" },
+  { soon: true, key: "math2", label: "中2 数学", file: "math2.js" },
+  { key: "eng2", label: "中2 英語（リスニングつき）", file: "eng2.js" },
+  { soon: true, key: "soc2", label: "中2 社会", file: "soc2.js" },
+  { soon: true, key: "jpn2", label: "中2 国語", file: "jpn2.js" }
+];
 
 function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const shuffleR = (a, r) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 
-const data = () => window.KUROTEST[document.querySelector("input[name=subj]:checked").value];
+const subjKey = () => document.querySelector("input[name=subj]:checked").value;
+const data = () => window.KUROTEST[subjKey()];
 const mode = () => document.querySelector("input[name=mode]:checked").value;
-
 const lv = () => +document.querySelector("input[name=lv]:checked").value;
-const pool = u => data().templates.filter(t => t.unit === u && (lv() === 0 || t.lv === lv()));
+// lv 0 の大問（リスニングなど）は、どの難易度でも出題する
+const pool = u => data().templates.filter(t => t.unit === u && (lv() === 0 || !t.lv || t.lv === lv()));
+const maxOf = u => Math.min(pool(u).length, (data().unitMax || {})[u] ?? 99);
 
-function renderUnits() {
+$("subj").innerHTML = SUBJ.map((x, i) => `<label><input type="radio" name="subj" value="${x.key}" ${i === 0 ? "checked" : ""} ${x.soon ? "disabled" : ""}><span>${x.label}${x.soon ? "（準備中）" : ""}</span></label>`).join("");
+function loadSubj(key) {
+  return new Promise((ok, ng) => {
+    if (window.KUROTEST && window.KUROTEST[key]) return ok();
+    const sc = document.createElement("script");
+    sc.src = SUBJ.find(x => x.key === key).file + "?v=" + (document.querySelector("meta[name=ver]")?.content || "1");
+    sc.onload = () => ok(); sc.onerror = () => ng(new Error("load")); document.body.appendChild(sc);
+  });
+}
+
+function renderUnits(reset) {
   const d = data(), m = mode();
   const keep = {};
-  document.querySelectorAll("#units select").forEach(x => keep[x.dataset.u] = +x.value);
-  const opt = (u, def) => { const n = pool(u).length; const v = Math.min(keep[u] ?? def, n); return Array.from({ length: n + 1 }, (_, i) => `<option value="${i}" ${i === v ? "selected" : ""}>${i}</option>`).join(""); };
+  if (!reset) document.querySelectorAll("#units select").forEach(x => keep[x.dataset.u] = +x.value);
+  const defOf = (k, i) => (d.defaults && k in d.defaults) ? d.defaults[k] : (i < 2 ? 3 : 0);
+  const opt = (u, def) => { const n = maxOf(u); const v = Math.min(keep[u] ?? def, n); return Array.from({ length: n + 1 }, (_, i) => `<option value="${i}" ${i === v ? "selected" : ""}>${i}</option>`).join(""); };
   if (m === "term") {
     $("unitLabel").textContent = "単元ごとの大問の数（0 にした単元は出題しません）";
     $("units").innerHTML = Object.entries(d.units).map(([k, v], i) =>
-      `<div class="urow"><div class="seg"><label><input type="checkbox" name="unit" value="${k}" ${(keep[k] ?? (i < 2 ? 3 : 0)) > 0 ? "checked" : ""}><span>${v}</span></label></div><select data-u="${k}" aria-label="${v}の大問の数">${opt(k, i < 2 ? 3 : 0)}</select><small>大問（最大 ${pool(k).length}）</small></div>`).join("");
+      `<div class="urow"><div class="seg"><label><input type="checkbox" name="unit" value="${k}" ${(keep[k] ?? defOf(k, i)) > 0 ? "checked" : ""}><span>${v}</span></label></div><select data-u="${k}" aria-label="${v}の大問の数">${opt(k, defOf(k, i))}</select><small>大問（最大 ${maxOf(k)}）</small></div>`).join("");
   } else {
-    const cur = document.querySelector("input[name=unit]:checked")?.value || Object.keys(d.units)[0];
+    const cur0 = document.querySelector("input[name=unit]:checked")?.value;
+    const cur = cur0 && d.units[cur0] ? cur0 : Object.keys(d.units)[0];
     $("unitLabel").textContent = "単元（1つ選ぶ）と大問の数";
     $("units").innerHTML = `<div class="seg">${Object.entries(d.units).map(([k, v]) => `<label><input type="radio" name="unit" value="${k}" ${k === cur ? "checked" : ""}><span>${v}</span></label>`).join("")}</div>
       <div class="urow"><select data-u="one" aria-label="大問の数">${Array.from({ length: 10 }, (_, i) => i + 1).map(i => `<option value="${i}" ${i === (keep.one || 5) ? "selected" : ""}>${i}</option>`).join("")}</select><small>大問（足りないときは、その単元の大問をすべて使います）</small></div>`;
   }
-  // チェックとセレクトを連動させる
   document.querySelectorAll("#units .urow").forEach(row => {
     const cb = row.querySelector("input[type=checkbox]"), sel = row.querySelector("select");
     if (!cb) return;
-    cb.onchange = () => { sel.value = cb.checked ? String(Math.min(3, pool(cb.value).length)) : "0"; make(curSeed()); };
+    cb.onchange = () => { sel.value = cb.checked ? String(Math.min(defOf(cb.value, 0) || 3, maxOf(cb.value))) : "0"; make(curSeed()); };
     sel.onchange = () => { cb.checked = +sel.value > 0; make(curSeed()); };
   });
   if (!$("title").dataset.edited) $("title").value = m === "term" ? "2学期 中間テスト" : "単元テスト";
 }
 
-// 配点：重みに比例して100点に配り、端数は最大剰余で調整
 function allot(items) {
-  const w = items.map(it => WEIGHT[it.type]), sum = w.reduce((a, b) => a + b, 0);
+  const w = items.map(it => it.w || WEIGHT[it.type]), sum = w.reduce((a, b) => a + b, 0);
   const raw = w.map(x => x * 100 / sum), pts = raw.map(Math.floor);
   let rest = 100 - pts.reduce((a, b) => a + b, 0);
   raw.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (rest > 0) { pts[i]++; rest--; } });
@@ -229,7 +269,7 @@ function build(seed) {
   let want = [];
   if (m === "unit") {
     const u = document.querySelector("input[name=unit]:checked").value;
-    want = [[u, +document.querySelector("#units select").value]];
+    want = [[u, Math.min(+document.querySelector("#units select").value, (d.unitMax || {})[u] ?? 99)]];
   } else {
     want = [...document.querySelectorAll("#units select")].map(x => [x.dataset.u, +x.value]).filter(([, n]) => n > 0);
   }
@@ -237,46 +277,109 @@ function build(seed) {
   let chosen = [];
   for (const [u, n] of want) {
     let p = shuffleR(pool(u), r);
-    // 「両方まぜる」は、入試レベルと基本をなるべく交互に
-    if (lv() === 0) { const a = p.filter(t => t.lv === 2), b = p.filter(t => t.lv === 1); p = []; while (a.length || b.length) { if (a.length) p.push(a.shift()); if (b.length) p.push(b.shift()); } }
-    chosen.push(...p.slice(0, n));
+    if (lv() === 0) { const a = p.filter(t => t.lv === 2), b = p.filter(t => t.lv !== 2); p = []; while (a.length || b.length) { if (a.length) p.push(a.shift()); if (b.length) p.push(b.shift()); } }
+    // 同じ group の大問は1つのテストに1つだけ（リスニングの大問1・大問2など）
+    const seen = new Set(), q = [];
+    for (const t of p) { if (t.group && seen.has(t.group)) continue; if (t.group) seen.add(t.group); q.push(t); }
+    chosen.push(...q.slice(0, n));
   }
-  chosen.sort((a, b) => order.indexOf(a.unit) - order.indexOf(b.unit) || (a.lv || 1) - (b.lv || 1));
+  chosen.sort((a, b) => order.indexOf(a.unit) - order.indexOf(b.unit) || (a.rank || 0) - (b.rank || 0) || (a.lv || 1) - (b.lv || 1));
   const per = +document.querySelector("input[name=per]:checked").value;
   const dqs = chosen.map(t => {
     const g = t.f(r);
     let keep = g.items.map((it, i) => i);
-    if (keep.length > per) keep = shuffleR(keep, r).slice(0, per).sort((a, b) => a - b);
+    if (keep.length > per && !g.keepAll) keep = shuffleR(keep, r).slice(0, per).sort((a, b) => a - b);
     g.items = keep.map(i => g.items[i]);
+    if (g.script && g.script.length === keep.length && g.items.length < g.script.length) g.script = keep.map(i => g.script[i]);
     return g;
   });
   allot(dqs.flatMap(g => g.items));
   const units = [...new Set(chosen.map(t => t.unit))];
-  return { seed, title: $("title").value || "テスト", name: d.name, units: units.map(u => d.units[u]), dqs, mode: m };
+  return { seed, title: $("title").value || "テスト", name: d.name, grade: d.grade || 1, minutes: d.minutes || 50, units: units.map(u => d.units[u]), dqs, mode: m };
+}
+
+const choicesHtml = it => it.pics ? `<div class="ch pics">${it.pics.join("")}</div>` : it.choices ? `<div class="ch${it.choices.every(c => c.length <= 18) ? " two" : ""}">${it.choices.map(c => `<span>${esc(c)}</span>`).join("")}</div>` : "";
+const qText = it => it.qHtml || esc(it.q);
+
+function scriptHtml(T) {
+  let no = 0;
+  const parts = T.dqs.map((g, gi) => g.script ? `<section class="dq script"><h3><span class="num">${gi + 1}</span>${esc(g.title)}</h3>${(g.scriptIntro ? `<p class="say ja">${esc(g.scriptIntro)}</p>` : "")}${g.script.map(b => `<p class="say ja"><b>${esc(b.title)}</b></p>${b.lines.map(l => `<p class="say en">${l.who ? `<b>${esc(l.who)}:</b> ` : ""}${esc(l.en)}</p>`).join("")}<p class="say pause">（2回くり返す）</p>`).join("")}</section>` : "").join("");
+  return parts;
 }
 
 function render(T) {
   const nItems = T.dqs.reduce((a, g) => a + g.items.length, 0);
   $("summary").textContent = `テスト番号 ${T.seed}　／　大問 ${T.dqs.length}・小問 ${nItems}・100点　／　出題範囲：${T.units.join("、")}`;
-  const head = (label) => `<h2>${esc(T.title)}　${T.name}${label}</h2><p class="sub">出題範囲：${esc(T.units.join("、"))}　／　50分　／　100点</p>`;
-  const nameBar = `<div class="namebar"><div><b>年</b>1年</div><div><b>組・番</b>　組　　番</div><div><b>氏名</b></div><div><b>得点</b>　　　／100</div></div>`;
+  const head = (label) => `<h2>${esc(T.title)}　${T.name}${label}</h2><p class="sub">出題範囲：${esc(T.units.join("、"))}　／　${T.minutes}分　／　100点</p>`;
+  const nameBar = `<div class="namebar"><div><b>年</b>${T.grade}年</div><div><b>組・番</b>　組　　番</div><div><b>氏名</b></div><div><b>得点</b>　　　／100</div></div>`;
   const qHtml = T.dqs.map((g, gi) => `<section class="dq"><h3><span class="num">${gi + 1}</span>${esc(g.title)}<span class="pts">（${g.items.reduce((a, it) => a + it.pts, 0)}点）</span></h3>
-    <div class="intro"><p class="lead">${g.lead}</p>${g.fig ? `<div class="fig">${g.fig}</div>` : ""}</div>
-    <ol class="items">${g.items.map((it, i) => `<li><span class="n">(${i + 1})</span><div>${esc(it.q)}${it.type === "order" ? "（記号で答えなさい）" : ""}${it.choices ? `<div class="ch${it.choices.every(c => c.length <= 18) ? " two" : ""}">${it.choices.map(c => `<span>${esc(c)}</span>`).join("")}</div>` : ""}</div></li>`).join("")}</ol></section>`).join("");
+    <div class="intro">${g.script ? `<p class="listen-note">放送を聞いて答える問題です。英文はそれぞれ2回読まれます。放送中にメモをとってもかまいません。</p>` : ""}<div class="lead">${g.lead}</div>${g.fig ? `<div class="fig">${g.fig}</div>` : ""}</div>
+    <ol class="items">${g.items.map((it, i) => `<li><span class="n">(${i + 1})</span><div>${qText(it)}${it.type === "order" ? "（記号で答えなさい）" : ""}${choicesHtml(it)}</div></li>`).join("")}</ol></section>`).join("");
   let html = `<article class="sheet">${head("")}${nameBar}${qHtml}<p class="foot">クロ先生のAI職員室　定期テスト自動作成　テスト番号 ${T.seed}</p></article>`;
   if ($("optSheet").checked) {
-    html += `<article class="sheet">${head("　解答用紙")}${nameBar}${T.dqs.map((g, gi) => `<p class="ans-head">${gi + 1}　${esc(g.title)}</p><div class="ans-grid">${g.items.map((it, i) => `<div class="cell${it.type === "desc" || (it.type === "word" && it.ans.length > 14) ? " wide" : ""}"><span>(${i + 1})</span><span class="p">${it.pts}点</span></div>`).join("")}</div>`).join("")}<p class="foot">テスト番号 ${T.seed}</p></article>`;
+    html += `<article class="sheet">${head("　解答用紙")}${nameBar}${T.dqs.map((g, gi) => `<p class="ans-head">${gi + 1}　${esc(g.title)}</p><div class="ans-grid">${g.items.map((it, i) => `<div class="cell${it.type === "desc" || it.wide || (it.type === "word" && it.ans.length > 14) ? " wide" : ""}"><span>(${i + 1})</span><span class="p">${it.pts}点</span></div>`).join("")}</div>`).join("")}<p class="foot">テスト番号 ${T.seed}</p></article>`;
   }
   if ($("optKey").checked) {
     html += `<article class="sheet key">${head("　解答・解説")}${T.dqs.map((g, gi) => `<section class="dq"><h3><span class="num">${gi + 1}</span>${esc(g.title)}<span class="pts">（${g.items.reduce((a, it) => a + it.pts, 0)}点）</span></h3><ol class="items">${g.items.map((it, i) => `<li><span class="n">(${i + 1})</span><div><span class="a">${esc(it.ans)}</span>　<small>［${it.pts}点］</small>${it.crit ? `<div class="c">採点の目安：${esc(it.crit)}</div>` : ""}${it.ex ? `<div class="x">${esc(it.ex)}</div>` : ""}</div></li>`).join("")}</ol></section>`).join("")}<p class="foot">テスト番号 ${T.seed}</p></article>`;
   }
+  const sc = scriptHtml(T);
+  if (sc) html += `<article class="sheet">${head("　リスニング放送台本")}<p class="listen-note">先生用です。下の「放送する」ボタンでパソコンに読み上げさせることもできます（英語の音声が入っている端末で動きます）。読み上げのかわりに、先生が台本を2回ずつ読んでもかまいません。</p>${sc}<p class="foot">テスト番号 ${T.seed}</p></article>`;
   $("out").innerHTML = html;
+  setupPlayer(T);
+}
+
+/* ---------- リスニングの読み上げ（Web Speech API） ---------- */
+let speakQ = [], speaking = false;
+function voices() { const v = speechSynthesis.getVoices(); return { en: v.filter(x => /^en[-_]US/i.test(x.lang)).concat(v.filter(x => /^en/i.test(x.lang) && !/^en[-_]US/i.test(x.lang))), ja: v.filter(x => /^ja/i.test(x.lang)) }; }
+function utter(text, lang, who, rate) {
+  return new Promise(ok => {
+    const u = new SpeechSynthesisUtterance(text), V = voices();
+    u.lang = lang === "en" ? "en-US" : "ja-JP"; u.rate = lang === "en" ? rate : 1;
+    const list = lang === "en" ? V.en : V.ja;
+    if (list.length) { const k = who ? (who.charCodeAt(0) + who.length) % Math.min(2, list.length) : 0; u.voice = list[k]; }
+    if (lang === "en" && who) u.pitch = /^(Woman|Girl|Emily|Meg|Ms|Lisa|Kate|Amy|Mother|Mom|Saki|Yuki|Aya|Mika)/.test(who) ? 1.25 : 0.9;
+    u.onend = u.onerror = () => ok(); speechSynthesis.speak(u);
+  });
+}
+const wait = s => new Promise(ok => setTimeout(ok, s * 1000));
+async function play(T, only) {
+  if (!("speechSynthesis" in window)) { alert("このブラウザでは読み上げが使えません。台本を先生が読んでください。"); return; }
+  speechSynthesis.cancel(); speaking = true;
+  const rate = +$("rate").value;
+  for (const [gi, g] of T.dqs.entries()) {
+    if (!g.script || (only != null && only !== gi)) continue;
+    $("now").textContent = `大問${gi + 1} を放送中`;
+    await utter(`これから、大問${gi + 1}の問題を始めます。英文はそれぞれ2回読まれます。`, "ja"); if (!speaking) return; await wait(1);
+    for (const b of g.script) {
+      for (let rep = 0; rep < 2; rep++) {
+        if (!speaking) return;
+        await utter(b.title + (rep ? "。もう一度読みます。" : ""), "ja"); await wait(0.6);
+        for (const l of b.lines) { if (!speaking) return; await utter(l.en, "en", l.who, rate); await wait(0.5); }
+        await wait(rep ? 5 : 2.5);
+      }
+    }
+  }
+  $("now").textContent = speaking ? "放送が終わりました" : ""; speaking = false;
+}
+function setupPlayer(T) {
+  const has = T.dqs.map((g, i) => g.script ? i : -1).filter(i => i >= 0);
+  if (!has.length) { $("player").hidden = true; return; }
+  $("player").hidden = false;
+  $("player").innerHTML = `<p><b>リスニングの放送</b>　パソコンのスピーカーで読み上げます（英文はそれぞれ2回）。印刷物には入りません。</p>
+    <div class="btns">${has.map(i => `<button class="btn" type="button" data-p="${i}">大問${i + 1} を放送する</button>`).join("")}<button class="btn main" type="button" data-p="all">リスニングをすべて放送</button><button class="btn" type="button" data-p="stop">止める</button>
+    <label style="font-size:13px">速さ <select id="rate"><option value="0.8">ゆっくり</option><option value="0.9" selected>ふつう</option><option value="1">はやめ</option></select></label></div><p class="now" id="now"></p>`;
+  $("player").querySelectorAll("button").forEach(b => b.onclick = () => { const p = b.dataset.p; if (p === "stop") { speaking = false; speechSynthesis.cancel(); $("now").textContent = "止めました"; return; } play(T, p === "all" ? null : +p); });
 }
 
 function make(seed) { const T = build(seed); if (T) { $("seed").value = seed; render(T); } }
 const newSeed = () => 10000 + Math.floor(Math.random() * 89999);
 const curSeed = () => Number($("seed").value) || newSeed();
 
+document.querySelectorAll("input[name=subj]").forEach(x => x.onchange = async () => {
+  try { await loadSubj(subjKey()); } catch (e) { alert("問題データを読みこめませんでした。通信状態を確かめてください。"); return; }
+  if (window.speechSynthesis) { speaking = false; speechSynthesis.cancel(); }
+  renderUnits(true); make(newSeed());
+});
 document.querySelectorAll("input[name=mode]").forEach(x => x.onchange = () => { renderUnits(); make(newSeed()); });
 document.querySelectorAll("input[name=lv]").forEach(x => x.onchange = () => { renderUnits(); make(curSeed()); });
 document.querySelectorAll("input[name=per]").forEach(x => x.onchange = () => make(curSeed()));
@@ -286,6 +389,7 @@ $("remake").onclick = () => make(newSeed());
 $("print").onclick = () => window.print();
 $("title").addEventListener("input", () => $("title").dataset.edited = "1");
 $("optSheet").onchange = $("optKey").onchange = $("title").oninput = () => make(curSeed());
+if (window.speechSynthesis) speechSynthesis.getVoices();
 renderUnits();
 make(newSeed());
 </script>
