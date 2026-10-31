@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI指示文づくり</title>
+<meta name="description" content="所見と学級通信の下書きをAIに頼むための指示文を作る、先生向けの無料ツール。入力内容はどこにも送られません。">
+<link rel="icon" href="../assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* Layout: form on paper (left/top), the finished instruction on a chalkboard card (right/bottom) that updates live. */
+:root {
+  --board: #1f4a3c;
+  --board-deep: #173a2f;
+  --chalk: #f3f1e7;
+  --chalk-dim: #b9c7bd;
+  --gold: #e8b64c;
+  --warn: #b5482f;
+  --warn-bg: #fbebe6;
+  --paper: #f7f4ea;
+  --card: #fffdf6;
+  --ink: #23302a;
+  --ink-soft: #5b6a62;
+  --line: #e2dccb;
+  --f-chalk: "Klee One", "Hiragino Mincho ProN", serif;
+  --f-body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--paper); }
+body { color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.7; }
+.in { max-width: 980px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px; display: grid; gap: 18px; }
+.back { color: var(--ink-soft); font-size: 14px; text-decoration: none; }
+.back:hover { color: var(--ink); }
+header { display: flex; gap: 14px; align-items: center; }
+header img { width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--gold); flex: none; }
+header h1 { font-family: var(--f-chalk); font-weight: 600; font-size: clamp(24px, 5vw, 32px); margin: 0; line-height: 1.3; }
+header p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+
+.tabs { display: flex; gap: 8px; }
+.tab { font: inherit; font-weight: 700; font-size: 15px; padding: 8px 18px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--board); color: var(--chalk); border-color: var(--board); }
+.tab:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+
+form { background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.row { display: grid; gap: 4px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label, .lbl { font-weight: 700; font-size: 14px; }
+.note { font-size: 12px; color: var(--ink-soft); font-weight: 500; }
+select, input[type="text"], textarea { font: inherit; font-size: 15px; color: var(--ink); background: #fff; border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; }
+textarea { min-height: 120px; resize: vertical; }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.checks label { font-weight: 500; display: inline-flex; gap: 4px; align-items: center; }
+.warn { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-weight: 700; }
+
+.out { background: var(--board); color: var(--chalk); border-radius: 12px; padding: 16px; display: grid; gap: 12px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); min-width: 0; }
+.out h2 { font-family: var(--f-chalk); font-weight: 600; font-size: 20px; margin: 0; }
+.out pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: var(--f-body); font-size: 14.5px; line-height: 1.75; background: rgba(0,0,0,.18); border-radius: 8px; padding: 12px; max-height: 60vh; overflow: auto; }
+.copy { font: inherit; font-weight: 900; font-size: 16px; background: var(--gold); color: #2b2210; border: none; border-radius: 999px; padding: 10px 20px; cursor: pointer; justify-self: start; }
+.out .how { margin: 0; font-size: 13px; color: var(--chalk-dim); }
+@media (max-width: 760px) { .out { position: static; } }
+</style>
+</head>
+<body>
+<div class="in">
+  <a class="back" href="../">← クロ先生のAI職員室</a>
+  <header>
+    <img src="../assets/kuro.jpg" alt="クロ先生" width="56" height="56">
+    <div>
+      <h1>AI指示文づくり</h1>
+      <p>選んで書くだけで、AIに渡す指示文ができます。入力した内容はどこにも送られません。</p>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-shoken" aria-selected="true" type="button">通知表の所見</button>
+    <button class="tab" role="tab" id="tab-tsushin" aria-selected="false" type="button">学級通信の書き出し</button>
+  </div>
+
+  <div class="grid">
+    <div>
+      <form id="f-shoken" autocomplete="off">
+        <div class="row2">
+          <div class="row"><label for="s-grade">学年</label>
+            <select id="s-grade"><option>中学1年</option><option selected>中学2年</option><option>中学3年</option></select></div>
+          <div class="row"><label for="s-term">時期</label>
+            <select id="s-term"><option>1学期</option><option selected>2学期</option><option>3学期（学年末）</option></select></div>
+        </div>
+        <div class="row2">
+          <div class="row"><label for="s-len">文字数</label>
+            <select id="s-len"><option value="80">80字前後</option><option value="100" selected>100字前後</option><option value="150">150字前後</option><option value="200">200字前後</option></select></div>
+          <div class="row"><label for="s-tone">語調</label>
+            <select id="s-tone"><option value="やわらかく、あたたかい">やわらかく</option><option value="ていねいで標準的な" selected>ていねいに</option><option value="簡潔で落ち着いた">簡潔に</option></select></div>
+        </div>
+        <div class="row"><span class="lbl">ふれたい場面</span>
+          <div class="checks">
+            <label><input type="checkbox" value="学習" checked> 学習</label>
+            <label><input type="checkbox" value="学校生活" checked> 学校生活</label>
+            <label><input type="checkbox" value="行事"> 行事</label>
+            <label><input type="checkbox" value="部活動"> 部活動</label>
+            <label><input type="checkbox" value="係・委員会活動"> 係・委員会</label>
+          </div>
+        </div>
+        <div class="row"><label for="s-memo">行動メモ <span class="note">事実だけを箇条書きで。名前は書かず「生徒A」に。</span></label>
+          <textarea id="s-memo">・体育祭で、ラインの準備を自分から手伝っていた
+・数学の小テストで、まちがえた問題をノートにまとめ直していた
+・提出物が遅れがち。最近は声をかけると出せるようになってきた</textarea>
+          <div class="warn" id="s-warn" hidden>人の名前のような言葉（〇〇さん・〇〇くん など）が入っているかもしれません。「生徒A」に置き換えてください。</div>
+        </div>
+        <div class="row"><label for="s-n">案の数</label>
+          <select id="s-n"><option>2</option><option selected>3</option><option>5</option></select></div>
+      </form>
+
+      <form id="f-tsushin" autocomplete="off" hidden>
+        <div class="row2">
+          <div class="row"><label for="t-month">月</label>
+            <select id="t-month"></select></div>
+          <div class="row"><label for="t-part">ころ</label>
+            <select id="t-part"><option selected>上旬</option><option>中旬</option><option>下旬</option></select></div>
+        </div>
+        <div class="row"><label for="t-event">最近の行事・できごと</label>
+          <input type="text" id="t-event" value="合唱コンクール"></div>
+        <div class="row"><label for="t-msg">いちばん伝えたいこと <span class="note">一つに絞るのがコツ</span></label>
+          <input type="text" id="t-msg" value="練習でクラスがまとまっていったことへの感謝"></div>
+        <div class="row"><label for="t-scene">先生だけが知っている一場面（任意） <span class="note">個人が分からない書き方で</span></label>
+          <input type="text" id="t-scene" value="本番前、何人かが自分たちで声をかけ合って円陣を組んでいた"></div>
+        <div class="row2">
+          <div class="row"><label for="t-reader">読者</label>
+            <select id="t-reader"><option selected>生徒と保護者</option><option>保護者</option><option>生徒</option></select></div>
+          <div class="row"><label for="t-n">案の数</label>
+            <select id="t-n"><option>3</option><option selected>5</option></select></div>
+        </div>
+        <div class="row"><label for="t-ask">あわせて頼むこと</label>
+          <select id="t-ask"><option value="">なし</option><option value="保護者へのお願いを1文入れる">保護者へのお願いを1文</option><option value="次の行事への予告を1文入れる">次の行事の予告を1文</option></select></div>
+      </form>
+    </div>
+
+    <section class="out" aria-labelledby="out-h">
+      <h2 id="out-h">できあがった指示文</h2>
+      <pre id="out"></pre>
+      <button class="copy" id="copy" type="button">コピーする</button>
+      <p class="how">学校や自治体が使ってよいとしているAI（Gemini、ChatGPT、Copilot など）に貼りつけてください。出てきた案は下書きです。最後は先生の言葉で仕上げてください。</p>
+    </section>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const month = $("t-month");
+for (let m = 1; m <= 12; m++) month.append(new Option(m + "月", m + "月", false, m === 11));
+
+let mode = "shoken";
+function setMode(m) {
+  mode = m;
+  $("tab-shoken").setAttribute("aria-selected", m === "shoken");
+  $("tab-tsushin").setAttribute("aria-selected", m === "tsushin");
+  $("f-shoken").hidden = m !== "shoken";
+  $("f-tsushin").hidden = m !== "tsushin";
+  render();
+}
+$("tab-shoken").onclick = () => setMode("shoken");
+$("tab-tsushin").onclick = () => setMode("tsushin");
+
+const NAME_RE = /[一-龥ぁ-んァ-ヶA-Za-z]{1,6}(さん|くん|君|ちゃん|様)/;
+
+function shoken() {
+  const scenes = [...document.querySelectorAll("#f-shoken .checks input:checked")].map(i => i.value);
+  const memo = $("s-memo").value.trim() || "（ここに行動メモ）";
+  $("s-warn").hidden = !NAME_RE.test($("s-memo").value);
+  return [
+    `あなたは経験豊富な中学校の担任です。次の行動メモをもとに、${$("s-grade").value}・${$("s-term").value}の通知表の所見を、${$("s-len").value}字前後で、言い回しの違う${$("s-n").value}案書いてください。`,
+    ``,
+    `条件：`,
+    `・${scenes.length ? scenes.join("、") + "の場面にふれる" : "行動メモの中から大切な場面を選んでふれる"}`,
+    `・よい点は、具体的な行動をあげてほめる`,
+    `・課題は「今後に期待すること」として前向きに書く`,
+    `・${$("s-tone").value}語調で、保護者が読んでうれしくなる文にする`,
+    `・メモにない事実は付け足さない`,
+    `・生徒は「生徒A」のまま書き、名前を作らない`,
+    ``,
+    `行動メモ：`,
+    memo
+  ].join("\n");
+}
+
+function tsushin() {
+  const scene = $("t-scene").value.trim();
+  const ask = $("t-ask").value;
+  return [
+    `中学校の学級通信の書き出しを、季節感のある3〜4文で、${$("t-n").value}案書いてください。`,
+    ``,
+    `時期：${$("t-month").value}${$("t-part").value}`,
+    `最近の行事・できごと：${$("t-event").value.trim() || "（ここに行事）"}`,
+    `いちばん伝えたいこと：${$("t-msg").value.trim() || "（ここに伝えたいこと）"}`,
+    scene ? `入れたい一場面：${scene}` : null,
+    `読者：${$("t-reader").value}`,
+    ``,
+    `条件：`,
+    `・個人名は使わず、クラス全体の様子として書く`,
+    `・案ごとに雰囲気を変える（季節から入る／行事の一場面から入る／問いかけから入る など）`,
+    ask ? `・${ask}` : null,
+    `・大げさな表現は避け、担任が自分の言葉で話しているような文にする`
+  ].filter(l => l !== null).join("\n");
+}
+
+function render() { $("out").textContent = mode === "shoken" ? shoken() : tsushin(); }
+document.querySelectorAll("form").forEach(f => { f.addEventListener("input", render); f.addEventListener("change", render); f.addEventListener("submit", e => e.preventDefault()); });
+
+$("copy").onclick = async () => {
+  const b = $("copy");
+  try { await navigator.clipboard.writeText($("out").textContent); b.textContent = "コピーしました"; }
+  catch (e) { const r = document.createRange(); r.selectNodeContents($("out")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "選択しました。長押しでコピー"; }
+  setTimeout(() => b.textContent = "コピーする", 2000);
+};
+render();
+</script>
+</body>
+</html>

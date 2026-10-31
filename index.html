@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>クロ先生のAI職員室</title>
+<meta name="description" content="中学校の先生と生徒のための、無料のAIツールとゲーム。ログイン不要・個人情報は集めません。運営：クロラボ">
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* Layout: a chalkboard band on top (who we are), then a paper "職員室の机" with two shelves: 生徒向け / 先生向け. */
+:root {
+  --board: #1f4a3c;
+  --board-deep: #173a2f;
+  --chalk: #f3f1e7;
+  --chalk-dim: #b9c7bd;
+  --gold: #e8b64c;
+  --red: #d9574a;
+  --paper: #f7f4ea;
+  --card: #fffdf6;
+  --ink: #23302a;
+  --ink-soft: #5b6a62;
+  --line: #e2dccb;
+  --wood: #6b4a2f;
+  --f-chalk: "Klee One", "Hiragino Mincho ProN", serif;
+  --f-body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--paper); }
+body { color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.8; }
+.in { max-width: 880px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.hero { background: radial-gradient(120% 90% at 15% 0%, rgba(255,255,255,.07), transparent 60%), var(--board); color: var(--chalk); border-bottom: 10px solid var(--wood); }
+.hero .in { padding-block: 32px 36px; display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center; }
+.hero img { width: 112px; height: 112px; border-radius: 50%; border: 4px solid var(--gold); }
+.hero .eyebrow { font-size: 13px; letter-spacing: .14em; color: var(--chalk-dim); margin: 0; }
+.hero h1 { font-family: var(--f-chalk); font-weight: 600; font-size: clamp(28px, 6vw, 42px); line-height: 1.3; margin: 2px 0 6px; text-wrap: balance; }
+.hero p.lead { margin: 0; font-size: 16px; color: var(--chalk); }
+.hero .promise { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding: 0; list-style: none; }
+.hero .promise li { font-size: 13px; border: 1.5px solid rgba(243,241,231,.45); border-radius: 999px; padding: 2px 12px; }
+@media (max-width: 520px) { .hero .in { grid-template-columns: 1fr; justify-items: start; } .hero img { width: 88px; height: 88px; } }
+
+main .in { padding-block: 28px 8px; display: grid; gap: 36px; }
+section h2 { font-family: var(--f-chalk); font-weight: 600; font-size: 24px; margin: 0 0 4px; }
+section > p.sub { margin: 0 0 14px; color: var(--ink-soft); font-size: 14px; }
+.shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.item { background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 8px; align-content: start; color: inherit; text-decoration: none; min-width: 0; }
+a.item:hover { border-color: var(--board); }
+a.item:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.item .k { font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--board); }
+.item h3 { margin: 0; font-size: 19px; line-height: 1.4; }
+.item p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+.item .go { font-weight: 700; color: var(--board); font-size: 14px; }
+.item.soon { border-style: dashed; background: transparent; }
+.item.soon .go { color: var(--ink-soft); }
+
+.about { background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 10px; }
+.about p { margin: 0; }
+.links { display: flex; flex-wrap: wrap; gap: 10px; }
+.links a { font-weight: 700; color: var(--chalk); background: var(--board); text-decoration: none; border-radius: 999px; padding: 6px 16px; font-size: 14px; }
+.links a:hover { background: var(--board-deep); }
+.links a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+footer .in { padding-block: 28px 40px; font-size: 12px; color: var(--ink-soft); }
+footer p { margin: 0 0 4px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="in">
+    <img src="assets/kuro.jpg" alt="丸メガネの黒猫、クロ先生" width="112" height="112">
+    <div>
+      <p class="eyebrow">中学校の職員室に住む黒猫のAI先生</p>
+      <h1>クロ先生のAI職員室</h1>
+      <p class="lead">先生の時間を、AIで取り戻す。生徒と先生のための、無料のゲームと道具を置いています。</p>
+      <ul class="promise">
+        <li>ログイン不要</li>
+        <li>名前や成績は集めません</li>
+        <li>元中学校教諭が監修</li>
+      </ul>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="in">
+    <section aria-labelledby="students">
+      <h2 id="students">生徒向けゲーム</h2>
+      <p class="sub">授業のはじめの5分に。スマホでもタブレットでも遊べます。</p>
+      <div class="shelf">
+        <a class="item" href="games/ai-machigai.html">
+          <span class="k">AIリテラシー・全教科</span>
+          <h3>AIのまちがい探し</h3>
+          <p>クロ先生の説明文には、まちがいが0〜2か所。見抜いて、確かめ方も選ぶ10点満点のゲームです。</p>
+          <span class="go">遊ぶ →</span>
+        </a>
+        <div class="item soon">
+          <span class="k">ドリル</span>
+          <h3>一問一答タイムアタック</h3>
+          <p>教科と単元を選んで、60秒で何問解けるか。準備中です。</p>
+          <span class="go">近日公開</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="teachers">
+      <h2 id="teachers">先生向けの道具</h2>
+      <p class="sub">入力した内容はどこにも送られません。できあがった指示文を、学校で使ってよいAIに貼ってください。</p>
+      <div class="shelf">
+        <a class="item" href="tools/shiji.html">
+          <span class="k">所見・学級通信</span>
+          <h3>AI指示文づくり</h3>
+          <p>いくつか選んで書くだけで、AIに渡す指示文ができます。生徒の名前を入れない形で作ります。</p>
+          <span class="go">使う →</span>
+        </a>
+        <div class="item soon">
+          <span class="k">お便り</span>
+          <h3>クロ先生の放課後ポスト</h3>
+          <p>愚痴でも困りごとでも。匿名で送れるお便りポストです。準備中です。</p>
+          <span class="go">近日公開</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="about">
+      <h2 id="about">クロ先生について</h2>
+      <div class="about">
+        <p>所見、学級通信、小テスト、保護者への連絡。授業の外の仕事を、AIで「下書きだけ楽にする」方法を発信しています。生徒の個人情報をAIに入れない使い方だけを紹介します。</p>
+        <div class="links">
+          <a href="https://note.com/kurolab_sensei" rel="noopener">note</a>
+          <a href="https://x.com/kurolab_sensei" rel="noopener">X</a>
+          <a href="https://kurolab-sensei.booth.pm/" rel="noopener">BOOTH</a>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="in">
+    <p>運営：クロラボ（KURO LAB）</p>
+    <p>このサイトは入力内容やアクセスした人の情報を保存・収集しません。学校でAIを使うときは、勤務校や自治体のルールを確認してください。</p>
+  </div>
+</footer>
+</body>
+</html>

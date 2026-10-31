@@ -1,1 +1,9 @@
-# kurolab-sensei.github.io
+# クロ先生のAI職員室
+
+中学校の先生と生徒のための、無料のAIツールとゲームを置いているサイトです。
+
+- サイト: https://kurolab-sensei.github.io
+- 生徒向けゲーム: `games/`
+- 先生向けの道具: `tools/`
+
+ログイン不要で、入力内容やアクセスした人の情報は保存・収集しません。運営：クロラボ（KURO LAB）
