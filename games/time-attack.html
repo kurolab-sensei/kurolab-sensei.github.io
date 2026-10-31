@@ -233,9 +233,13 @@ function renderHome() {
   show("home");
 }
 
+const SEEN = "kurolab-time-attack-seen";
+function loadSeen(key) { try { return (JSON.parse(localStorage.getItem(SEEN) || "{}")[key]) || []; } catch (e) { return []; } }
+function saveSeen(key, list) { try { const all = JSON.parse(localStorage.getItem(SEEN) || "{}"); all[key] = list.slice(-80); localStorage.setItem(SEEN, JSON.stringify(all)); } catch (e) {} }
+
 function ready(key) {
   const m = modeOf(key);
-  S = { key, gens: m.gens, name: m.name, score: 0, combo: 0, maxCombo: 0, right: 0, wrong: 0, missed: [], over: false, last: "" };
+  S = { key, gens: m.gens, name: m.name, score: 0, combo: 0, maxCombo: 0, right: 0, wrong: 0, missed: [], over: false, used: new Set(), recent: new Set(loadSeen(key)), seenNow: [] };
   $("readyUnit").textContent = m.name;
   show("ready");
   let n = 3; $("count").textContent = n;
@@ -244,9 +248,12 @@ function ready(key) {
 }
 
 function nextQ() {
+  // 同じ回の中では同じ問題を出さない。前の回に出た問題もなるべく避ける。
   let q, tries = 0;
-  do { q = pick(S.gens)(); tries++; } while (S.last === q.q && tries < 8);
-  S.last = q.q; S.cur = q; S.locked = false; S.shown = performance.now();
+  do { q = pick(S.gens)(); tries++; } while ((S.used.has(q.q) || (tries < 40 && S.recent.has(q.q))) && tries < 80);
+  if (S.used.has(q.q)) S.used.clear();
+  S.used.add(q.q); S.cur = q;
+  S.seenNow.push(q.q); S.locked = false; S.shown = performance.now();
   $("unit").textContent = q.unit;
   $("q").textContent = q.q;
   $("opts").innerHTML = "";
@@ -303,6 +310,7 @@ const RANKS = [[400, "職員室の伝説", "ここまで来るとクロ先生も
 function finish() {
   S.over = true;
   cancelAnimationFrame(timer);
+  saveSeen(S.key, [...loadSeen(S.key), ...S.seenNow]);
   const k = S.key, isNew = S.score > (best[k] || 0);
   if (isNew) { best[k] = S.score; saveBest(); }
   const [, rank, say] = RANKS.find(r => S.score >= r[0]);

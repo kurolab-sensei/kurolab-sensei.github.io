@@ -3,6 +3,8 @@
 (function () {
 const rnd = n => Math.floor(Math.random() * n);
 const pick = a => a[rnd(a.length)];
+// 袋から1つずつ取り出す：全部出るまで同じものは出ない
+function bag(list) { let b = []; return () => { if (!b.length) b = shuffle(list); return b.pop(); }; }
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const sgn = n => n < 0 ? "−" + (-n) : String(n);
 const par = n => n < 0 ? "(" + sgn(n) + ")" : String(n);
@@ -38,17 +40,19 @@ function strQ(unit, q, ans, wrongs, ex) {
 function pool(unit, items, defEx = "") {
   const answers = [...new Set(items.map(x => x[1]))];
   const hasNum = v => /\d/.test(v);
+  const next = bag(items);
   return () => {
-    const [q, a, ex, w] = pick(items);
+    const [q, a, ex, w] = next();
     const same = answers.filter(v => hasNum(v) === hasNum(a));
     return strQ(unit, q, a, w && w.length >= 3 ? w : same.length >= 4 ? same : answers, ex || defEx);
   };
 }
 // 対になった用語: 両方向の問題を作る
 function pairs(unit, list, qa, qb, defEx = "") {
+  const n1 = bag(list), n2 = bag(list);
   return [
-    () => { const [x, y, ex] = pick(list); return strQ(unit, qa(x), y, list.filter(p => p[0] !== x).map(p => p[1]), ex || defEx); },
-    () => { const [x, y, ex] = pick(list); return strQ(unit, qb(y), x, list.filter(p => p[1] !== y).map(p => p[0]), ex || defEx); }
+    () => { const [x, y, ex] = n1(); return strQ(unit, qa(x), y, list.filter(p => p[0] !== x).map(p => p[1]), ex || defEx); },
+    () => { const [x, y, ex] = n2(); return strQ(unit, qb(y), x, list.filter(p => p[1] !== y).map(p => p[0]), ex || defEx); }
   ];
 }
 
@@ -237,12 +241,14 @@ add("m3-geo", "math", 3, "相似・円・三平方の定理", [
 /* ===================== 英語 ===================== */
 const BE = [["I ( ) a student.", "am"], ["He ( ) my brother.", "is"], ["They ( ) busy now.", "are"], ["You ( ) very kind.", "are"], ["My mother ( ) a nurse.", "is"], ["We ( ) good friends.", "are"],
   ["Ken and I ( ) classmates.", "are"], ["This book ( ) interesting.", "is"], ["It ( ) sunny today.", "is"], ["I ( ) not tired.", "am"], ["I ( ) at home yesterday.", "was"], ["They ( ) in Kyoto last week.", "were"],
-  ["She ( ) sick last Sunday.", "was"], ["We ( ) very hungry then.", "were"], ["( ) you from Canada?", "Are"], ["( ) this your bag?", "Is"]];
+  ["She ( ) sick last Sunday.", "was"], ["We ( ) very hungry then.", "were"], ["( ) you from Canada?", "Are"], ["( ) this your bag?", "Is"], ["Mr. Sato and Ms. Ito ( ) teachers.", "are"], ["My dog ( ) very cute.", "is"], ["I ( ) twelve years old.", "am"], ["Where ( ) your shoes?", "are"],
+  ["It ( ) cold last night.", "was"], ["You ( ) late yesterday.", "were"], ["My sister ( ) in Tokyo now.", "is"], ["These pens ( ) mine.", "are"], ["( ) they your friends?", "Are"], ["( ) she a doctor?", "Is"],
+  ["( ) I right?", "Am"], ["Tom ( ) not at school yesterday.", "was"], ["There ( ) a cat under the table.", "is"], ["There ( ) many books on the desk.", "are"]];
 const S3 = [["play", "plays"], ["study", "studies"], ["go", "goes"], ["watch", "watches"], ["have", "has"], ["wash", "washes"], ["teach", "teaches"], ["try", "tries"], ["like", "likes"], ["do", "does"],
-  ["fly", "flies"], ["enjoy", "enjoys"], ["read", "reads"], ["swim", "swims"], ["carry", "carries"], ["mix", "mixes"], ["stay", "stays"], ["cry", "cries"], ["catch", "catches"], ["use", "uses"]];
+  ["fly", "flies"], ["enjoy", "enjoys"], ["read", "reads"], ["swim", "swims"], ["carry", "carries"], ["mix", "mixes"], ["stay", "stays"], ["cry", "cries"], ["catch", "catches"], ["use", "uses"], ["finish", "finishes"], ["say", "says"], ["buy", "buys"], ["push", "pushes"], ["miss", "misses"], ["worry", "worries"], ["pass", "passes"], ["fix", "fixes"], ["play", "plays"], ["make", "makes"]];
 const PL = [["child", "children"], ["man", "men"], ["woman", "women"], ["foot", "feet"], ["tooth", "teeth"], ["mouse", "mice"], ["box", "boxes"], ["city", "cities"], ["knife", "knives"], ["leaf", "leaves"],
-  ["potato", "potatoes"], ["dish", "dishes"], ["family", "families"], ["boy", "boys"], ["sheep", "sheep"], ["fish", "fish"], ["bus", "buses"], ["day", "days"], ["country", "countries"], ["life", "lives"]];
-const WH = [["どこ", "where"], ["いつ", "when"], ["だれ", "who"], ["なに", "what"], ["なぜ", "why"], ["どのように", "how"], ["どちら・どれ", "which"], ["だれの", "whose"], ["いくつ（数）", "how many"], ["いくら（値段）", "how much"], ["何歳", "how old"], ["何時", "what time"], ["どのくらい長く", "how long"], ["どんな天気", "how is the weather"]];
+  ["potato", "potatoes"], ["dish", "dishes"], ["family", "families"], ["boy", "boys"], ["sheep", "sheep"], ["fish", "fish"], ["bus", "buses"], ["day", "days"], ["country", "countries"], ["life", "lives"], ["photo", "photos"], ["piano", "pianos"], ["glass", "glasses"], ["watch", "watches"], ["baby", "babies"], ["toy", "toys"], ["story", "stories"], ["wolf", "wolves"], ["person", "people"], ["Japanese", "Japanese"]];
+const WH = [["どこ", "where"], ["いつ", "when"], ["だれ", "who"], ["なに", "what"], ["なぜ", "why"], ["どのように", "how"], ["どちら・どれ", "which"], ["だれの", "whose"], ["いくつ（数）", "how many"], ["いくら（値段）", "how much"], ["何歳", "how old"], ["何時", "what time"], ["どのくらい長く", "how long"], ["どんな天気", "how is the weather"], ["何曜日", "what day"], ["何色", "what color"], ["どのくらいの頻度で", "how often"], ["どのくらい遠く", "how far"], ["どの〜", "which ＋ 名詞"], ["何の教科", "what subject"]];
 const DAYS = [["月曜日", "Monday"], ["火曜日", "Tuesday"], ["水曜日", "Wednesday"], ["木曜日", "Thursday"], ["金曜日", "Friday"], ["土曜日", "Saturday"], ["日曜日", "Sunday"],
   ["1月", "January"], ["2月", "February"], ["3月", "March"], ["4月", "April"], ["5月", "May"], ["6月", "June"], ["7月", "July"], ["8月", "August"], ["9月", "September"], ["10月", "October"], ["11月", "November"], ["12月", "December"],
   ["春", "spring"], ["夏", "summer"], ["秋", "fall"], ["冬", "winter"]];
@@ -288,7 +294,10 @@ add("e2-inf", "eng", 2, "不定詞・動名詞", pool("不定詞・動名詞", [
   ["Did you finish ( ) your homework?", "doing", "finish のあとは動名詞。", ["to do", "do", "did"]], ["I hope ( ) you again.", "to see", "hope のあとは不定詞。", ["seeing", "see", "saw"]], ["Stop ( ), please.", "talking", "stop ＋ -ing で「〜するのをやめる」。", ["to talk", "talk", "talked"]],
   ["She decided ( ) abroad.", "to study", "decide のあとは不定詞。", ["studying", "study", "studied"]], ["Thank you for ( ) me.", "helping", "前置詞のあとは動名詞。", ["to help", "help", "helped"]], ["He is good at ( ).", "singing", "前置詞 at のあとは動名詞。", ["to sing", "sing", "sang"]],
   ["I went to the library ( ) books.", "to borrow", "「〜するために」は不定詞（副詞的用法）。", ["borrowing", "borrow", "borrowed"]], ["I have a lot of homework ( ) today.", "to do", "「〜するべき」は不定詞（形容詞的用法）。", ["doing", "do", "done"]],
-  ["It is important ( ) English every day.", "to study", "It is … to 〜 で「〜することは…だ」。", ["studying", "study", "studied"]], ["Do you know how ( ) this machine?", "to use", "how to 〜 で「〜のしかた」。", ["using", "use", "used"]]]));
+  ["It is important ( ) English every day.", "to study", "It is … to 〜 で「〜することは…だ」。", ["studying", "study", "studied"]], ["Do you know how ( ) this machine?", "to use", "how to 〜 で「〜のしかた」。", ["using", "use", "used"]], ["My dream is ( ) a teacher.", "to become", "「〜すること」は不定詞（名詞的用法）。", ["becoming", "become", "became"]],
+  ["( ) English is fun.", "Studying", "主語になる「〜すること」は動名詞。", ["Study", "Studied", "Studies"]], ["I'm happy ( ) you.", "to see", "感情の原因「〜して」は不定詞。", ["seeing", "see", "saw"]], ["Would you like something ( )?", "to drink", "「何か飲むもの」は something to drink。", ["drinking", "drink", "drank"]],
+  ["He likes ( ) pictures.", "drawing", "like のあとは -ing も to ＋ 原形も使えます。", ["drew", "draws", "drawn"]], ["I don't know what ( ).", "to do", "what to 〜 で「何を〜すべきか」。", ["doing", "do", "did"]], ["She practiced ( ) the piano.", "playing", "practice のあとは動名詞。", ["to play", "play", "played"]],
+  ["We need ( ) water.", "to save", "need のあとは不定詞。", ["saving", "save", "saved"]], ["How about ( ) shopping?", "going", "How about のあとは動名詞。", ["to go", "go", "went"]], ["I tried ( ) the box.", "to open", "try to 〜 で「〜しようとする」。", ["opened", "open", "opens"]]]));
 add("e2-aux", "eng", 2, "助動詞・未来", [...pairs("助動詞", [["must", "〜しなければならない"], ["can", "〜できる"], ["may", "〜してもよい"], ["should", "〜すべきだ"], ["will", "〜するだろう"], ["must not", "〜してはいけない"], ["don't have to", "〜する必要はない"], ["Shall I 〜?", "〜しましょうか"], ["Will you 〜?", "〜してくれませんか"]],
   e => e + " の意味は？", j => "「" + j + "」を表すのは？", "must not（〜してはいけない）と don't have to（〜する必要はない）は、意味がまったくちがうので要注意です。"),
   pool("未来の文", [["I ( ) visit Kyoto next week.", "will", "未来のことは will ＋ 動詞の原形。", ["was", "did", "am"]], ["She is going ( ) buy a new bike.", "to", "be going to ＋ 動詞の原形。", ["for", "will", "at"]], ["It will ( ) rainy tomorrow.", "be", "will のあとは原形なので be。", ["is", "was", "are"]],
@@ -299,26 +308,38 @@ add("e3-perf", "eng", 3, "現在完了", pool("現在完了", [["I have ( ) to K
   ["I have just ( ) lunch.", "eaten", "eat の過去分詞は eaten。", ["ate", "eat", "eating"]], ["Have you ever ( ) sushi?", "eaten", "経験を聞く文。have ＋ 過去分詞。", ["ate", "eat", "eats"]], ["( ) long have you lived here?", "How", "How long 〜? で期間をたずねます。", ["What", "When", "Where"]],
   ["I have lived here ( ) three years.", "for", "期間の長さは for。", ["since", "from", "in"]], ["I have known him ( ) last year.", "since", "始まった時点は since。", ["for", "from", "in"]], ["I have ( ) finished my homework.", "already", "肯定文の「もう」は already。", ["yet", "ever", "never"]],
   ["Have you finished it ( )?", "yet", "疑問文の「もう」は yet（文末）。", ["already", "ever", "just"]], ["I have ( ) seen a panda.", "never", "「一度も〜ない」は never。", ["ever", "yet", "already"]],
-  ["He has ( ) to Canada.（もう行ってしまって、ここにいない）", "gone", "have gone to は「行ってしまった（今ここにいない）」。", ["been", "went", "go"]], ["It has ( ) raining since this morning.", "been", "現在完了進行形は have been ＋ -ing。", ["be", "was", "being"]]]));
+  ["He has ( ) to Canada.（もう行ってしまって、ここにいない）", "gone", "have gone to は「行ってしまった（今ここにいない）」。", ["been", "went", "go"]], ["It has ( ) raining since this morning.", "been", "現在完了進行形は have been ＋ -ing。", ["be", "was", "being"]], ["How many times ( ) you visited Nara?", "have", "回数をたずねる現在完了の疑問文。", ["did", "do", "are"]],
+  ["I have ( ) him for ten years.", "known", "know の過去分詞は known。", ["knew", "know", "knowing"]], ["She has ( ) her homework yet.", "not finished", "否定文は have not ＋ 過去分詞。", ["didn't finish", "not finish", "no finished"]], ["We have been friends ( ) we were children.", "since", "since のあとに文が続くこともあります。", ["for", "from", "when"]],
+  ["Have you ever ( ) to Okinawa?", "been", "「〜に行ったことがある」は have been to。", ["gone", "went", "go"]], ["I have ( ) seen such a big fish.", "never", "「一度も〜ない」は never。", ["ever", "yet", "already"]], ["The train has just ( ).", "left", "leave の過去分詞は left。", ["leave", "leaved", "leaving"]], ["( ) have you been?", "Where", "「どこにいたの？」", ["What", "Who", "How"]]]));
 add("e3-pass", "eng", 3, "受け身", pool("受け身", [["This room is ( ) every day.", "cleaned", "受け身は be 動詞 ＋ 過去分詞。", ["clean", "cleaning", "cleans"]], ["English is ( ) in many countries.", "spoken", "speak の過去分詞は spoken。", ["speak", "spoke", "speaking"]],
   ["This book was ( ) by Soseki.", "written", "write の過去分詞は written。", ["wrote", "write", "writing"]], ["The bridge was ( ) in 1990.", "built", "build の過去分詞は built。", ["build", "builded", "building"]], ["The window was broken ( ) Tom.", "by", "「〜によって」は by。", ["of", "with", "from"]],
   ["Mt. Fuji can ( ) from here.", "be seen", "助動詞の受け身は can be ＋ 過去分詞。", ["see", "seen", "be saw"]], ["( ) this letter written in English?", "Was", "受け身の疑問文は be 動詞を前に。", ["Did", "Does", "Has"]], ["She is known ( ) everyone.", "to", "be known to 〜 で「〜に知られている」。", ["by", "for", "of"]],
-  ["I was surprised ( ) the news.", "at", "be surprised at 〜 で「〜に驚く」。", ["by", "with", "of"]], ["The desk is made ( ) wood.", "of", "材料が見てわかるときは be made of。", ["from", "by", "in"]]]));
+  ["I was surprised ( ) the news.", "at", "be surprised at 〜 で「〜に驚く」。", ["by", "with", "of"]], ["The desk is made ( ) wood.", "of", "材料が見てわかるときは be made of。", ["from", "by", "in"]], ["Butter is made ( ) milk.", "from", "原料が見てわからないときは be made from。", ["of", "by", "in"]],
+  ["The top of the mountain is covered ( ) snow.", "with", "be covered with 〜 で「〜でおおわれている」。", ["by", "of", "in"]], ["I am interested ( ) science.", "in", "be interested in 〜 で「〜に興味がある」。", ["at", "of", "by"]], ["This song is loved ( ) young people.", "by", "「〜によって」は by。", ["to", "with", "of"]],
+  ["The letter was ( ) yesterday.", "sent", "send の過去分詞は sent。", ["send", "sended", "sending"]], ["When was this temple ( )?", "built", "受け身の疑問文。build − built − built。", ["build", "building", "builds"]], ["The museum is ( ) on Mondays.", "closed", "「閉められている」は closed。", ["close", "closing", "closes"]], ["Many stars can ( ) tonight.", "be seen", "can be ＋ 過去分詞。", ["see", "seeing", "saw"]]]));
 add("e3-rel", "eng", 3, "関係代名詞・分詞", pool("関係代名詞", [["I have a friend ( ) lives in Osaka.", "who", "先行詞が人で、主語のはたらきなら who。", ["which", "whose", "where"]], ["This is the book ( ) I bought yesterday.", "which", "先行詞がもので、目的語のはたらきなら which（that も可）。", ["who", "whose", "what"]],
   ["Look at the dog ( ) has long ears.", "which", "先行詞が動物・ものなら which。", ["who", "whose", "where"]], ["I know a girl ( ) hair is very long.", "whose", "「その人の〜」は whose。", ["who", "which", "what"]], ["The boy ( ) is running over there is Ken.", "who", "先行詞が人なので who。", ["which", "whose", "what"]],
   ["The boy ( ) under the tree is Ken.", "sitting", "「〜している」名詞は -ing（現在分詞）で後ろから説明します。", ["sat", "sits", "to sit"]], ["This is a car ( ) in Japan.", "made", "「〜された」名詞は過去分詞で後ろから説明します。", ["making", "makes", "to make"]],
-  ["Look at the ( ) baby.", "sleeping", "1語なら名詞の前に置きます。", ["slept", "sleeps", "to sleep"]], ["I wish I ( ) a bird.", "were", "仮定法では be 動詞は were をよく使います。", ["am", "was been", "be"]], ["If I ( ) time, I would help you.", "had", "仮定法過去は if ＋ 過去形。", ["have", "has", "will have"]]]));
+  ["Look at the ( ) baby.", "sleeping", "1語なら名詞の前に置きます。", ["slept", "sleeps", "to sleep"]], ["I wish I ( ) a bird.", "were", "仮定法では be 動詞は were をよく使います。", ["am", "was been", "be"]], ["If I ( ) time, I would help you.", "had", "仮定法過去は if ＋ 過去形。", ["have", "has", "will have"]], ["The man ( ) I met yesterday was kind.", "that", "目的格の関係代名詞は that（または who／省略）も使えます。", ["which", "whose", "what"]],
+  ["Do you know the girl ( ) is playing the piano?", "who", "先行詞が人で主語のはたらき。", ["which", "whose", "where"]], ["This is the house ( ) roof is red.", "whose", "「その家の屋根」なので whose。", ["which", "who", "that"]], ["The language ( ) in Brazil is Portuguese.", "spoken", "「話されている言語」は過去分詞で後ろから説明。", ["speaking", "speaks", "spoke"]],
+  ["The girl ( ) with Ken is Mika.", "talking", "「話している少女」は -ing で後ろから説明。", ["talked", "talks", "to talk"]], ["I have a friend ( ) father is a pilot.", "whose", "「その友だちの父親」なので whose。", ["who", "which", "that"]], ["I wish I ( ) speak French.", "could", "I wish のあとは過去形（仮定法）。", ["can", "will", "am"]], ["Everything ( ) he said was true.", "that", "先行詞に everything があるときは that をよく使います。", ["who", "whose", "what"]]]));
 
 /* ===================== 理科 ===================== */
 add("s1-plant", "sci", 1, "植物のつくりとなかま", pool("植物", [["花粉をつくるところは？", "やく"], ["受粉したあと種子になるところは？", "胚珠"], ["受粉したあと果実になるところは？", "子房"], ["めしべの先を何という？", "柱頭"],
   ["花粉が柱頭につくことを何という？", "受粉"], ["胚珠が子房に包まれている植物は？", "被子植物"], ["胚珠がむき出しになっている植物は？", "裸子植物"], ["マツは何植物？", "裸子植物", "マツやイチョウは、胚珠がむき出しの裸子植物です。", ["被子植物", "シダ植物", "コケ植物"]],
   ["単子葉類の葉脈は？", "平行脈", "単子葉類は平行脈、双子葉類は網状脈です。", ["網状脈", "主根", "ひげ根"]], ["双子葉類の根のつくりは？", "主根と側根", "単子葉類はひげ根です。", ["ひげ根", "仮根", "平行脈"]], ["光合成でつくられる気体は？", "酸素", "光合成では、二酸化炭素と水からデンプンと酸素ができます。", ["二酸化炭素", "水素", "窒素"]],
   ["光合成が行われる、細胞の中の緑色の粒は？", "葉緑体"], ["水蒸気が出ていく、葉の表面のすきまは？", "気孔"], ["根から吸った水が通る管は？", "道管"], ["葉でつくられた養分が通る管は？", "師管"], ["シダ植物やコケ植物は何でふえる？", "胞子"],
-  ["コケ植物の、根のように見えるつくりは？", "仮根"], ["植物の体から水が水蒸気として出ていくことを何という？", "蒸散"], ["道管と師管が集まって束のようになったものは？", "維管束"], ["アブラナの花で、いちばん外側にあるのは？", "がく", "外側から、がく・花弁・おしべ・めしべの順です。", ["花弁", "おしべ", "めしべ"]]]));
+  ["コケ植物の、根のように見えるつくりは？", "仮根"], ["植物の体から水が水蒸気として出ていくことを何という？", "蒸散"], ["道管と師管が集まって束のようになったものは？", "維管束"], ["アブラナの花で、いちばん外側にあるのは？", "がく", "外側から、がく・花弁・おしべ・めしべの順です。", ["花弁", "おしべ", "めしべ"]],
+  ["マツの雌花で、胚珠がついているところは？", "りん片"], ["種子をつくらず胞子でふえる、維管束がある植物は？", "シダ植物"], ["イネやトウモロコシのように子葉が1枚の植物は？", "単子葉類"], ["アサガオやアブラナのように子葉が2枚の植物は？", "双子葉類"],
+  ["花弁が1つにくっついている花を何という？", "合弁花"], ["花弁が1枚1枚離れている花を何という？", "離弁花"], ["ルーペで観察するとき、動かすのは？（観察物が動かせるとき）", "観察物", "ルーペは目に近づけて持ち、観察物を前後に動かしてピントを合わせます。", ["ルーペ", "顔", "両方"]],
+  ["顕微鏡で、最初に使う対物レンズの倍率は？", "低倍率", "最初は低倍率で広く見て、観察したいものを中央にしてから高倍率にします。", ["高倍率", "どちらでもよい", "最大倍率"]], ["葉の表皮で、気孔をつくっている2つの細胞は？", "孔辺細胞"], ["デンプンがあるかどうか調べる薬品は？", "ヨウ素液", "デンプンがあると青紫色に変わります。", ["BTB溶液", "石灰水", "ベネジクト液"]]]));
 add("s1-animal", "sci", 1, "動物のなかま", pool("動物", [["背骨のある動物をまとめて何という？", "セキツイ動物"], ["背骨のない動物をまとめて何という？", "無セキツイ動物"], ["カエルは何類？", "両生類", "子はえら、親は肺と皮膚で呼吸します。", ["は虫類", "魚類", "哺乳類"]],
   ["クジラは何類？", "哺乳類", "クジラは肺で呼吸し、子を母乳で育てます。", ["魚類", "両生類", "鳥類"]], ["ペンギンは何類？", "鳥類", "飛べなくても、羽毛があり卵を産むので鳥類です。", ["哺乳類", "魚類", "両生類"]], ["イモリは何類？", "両生類", "イモリは両生類、ヤモリはは虫類です。", ["は虫類", "魚類", "哺乳類"]],
   ["ヤモリは何類？", "は虫類", "ヤモリはは虫類、イモリは両生類です。", ["両生類", "哺乳類", "鳥類"]], ["子が母親の体内である程度育ってから生まれる生まれ方は？", "胎生"], ["卵で生まれる生まれ方は？", "卵生"], ["昆虫の体は、頭部・胸部と何に分かれる？", "腹部", "昆虫の体は頭部・胸部・腹部の3つ。あしは胸部に6本です。", ["背部", "尾部", "脚部"]],
-  ["エビやカニのなかまは？", "甲殻類"], ["昆虫やエビの体をおおうかたい殻は？", "外骨格"], ["イカやアサリのなかまは？", "軟体動物"], ["ほかの動物を食べる動物は？", "肉食動物"], ["肉食動物の目のつき方の特徴は？", "前向きにつく", "前向きの目は立体的に見えて、えものとの距離をはかりやすい。", ["横向きにつく", "上向きにつく", "目がない"]]]));
+  ["エビやカニのなかまは？", "甲殻類"], ["昆虫やエビの体をおおうかたい殻は？", "外骨格"], ["イカやアサリのなかまは？", "軟体動物"], ["ほかの動物を食べる動物は？", "肉食動物"], ["肉食動物の目のつき方の特徴は？", "前向きにつく", "前向きの目は立体的に見えて、えものとの距離をはかりやすい。", ["横向きにつく", "上向きにつく", "目がない"]],
+  ["草食動物の目のつき方の特徴は？", "横向きにつく", "横向きの目は広い範囲を見わたせて、敵を見つけやすい。", ["前向きにつく", "上向きにつく", "目がない"]], ["肉食動物の歯で、えものをとらえる大きくするどい歯は？", "犬歯"], ["草食動物で、草をすりつぶすのに適した発達した歯は？", "臼歯"],
+  ["魚類の呼吸のしかたは？", "えら呼吸"], ["は虫類の体表は何でおおわれている？", "うろこ"], ["鳥類の体表は何でおおわれている？", "羽毛"], ["殻のない卵を水中に産むなかまは？", "魚類と両生類", "", ["鳥類とは虫類", "哺乳類と鳥類", "は虫類と魚類"]],
+  ["外とう膜で内臓が包まれている動物のなかまは？", "軟体動物"], ["コウモリは何類？", "哺乳類", "空を飛びますが、子を母乳で育てる哺乳類です。", ["鳥類", "は虫類", "両生類"]], ["昆虫のあしは何本？", "6本", "昆虫のあしは胸部から6本出ています。", ["4本", "8本", "10本"]]]));
 add("s1-matter", "sci", 1, "身のまわりの物質", [pool("気体・物質", [["ものを燃やすはたらきがある気体は？", "酸素"], ["石灰水を白くにごらせる気体は？", "二酸化炭素"], ["火をつけると音を立てて燃える、最も軽い気体は？", "水素"], ["水によくとけ、水溶液がアルカリ性で、上方置換で集める気体は？", "アンモニア"],
   ["二酸化マンガンにオキシドール（過酸化水素水）を加えると出る気体は？", "酸素"], ["石灰石にうすい塩酸を加えると出る気体は？", "二酸化炭素"], ["亜鉛にうすい塩酸を加えると出る気体は？", "水素"], ["空気中に約78％ふくまれる気体は？", "窒素"],
   ["水にとけにくい気体を集める方法は？", "水上置換法"], ["水にとけやすく空気より重い気体を集める方法は？", "下方置換法"], ["炭素をふくみ、燃えると二酸化炭素ができる物質は？", "有機物"], ["固体が液体に変わる温度は？", "融点"], ["液体が沸騰する温度は？", "沸点"],
@@ -337,7 +358,10 @@ add("s1-earth", "sci", 1, "大地の変化", pool("大地", [["マグマが冷�
   ["深成岩に見られる、同じくらいの大きさの結晶が集まったつくりは？", "等粒状組織"], ["花こう岩は何岩？", "深成岩", "花こう岩は白っぽい深成岩です。", ["火山岩", "堆積岩", "変成岩"]], ["玄武岩は何岩？", "火山岩", "玄武岩は黒っぽい火山岩です。", ["深成岩", "堆積岩", "変成岩"]],
   ["サンヨウチュウが栄えた時代は？", "古生代", "サンヨウチュウは古生代の示準化石です。", ["中生代", "新生代", "現代"]], ["アンモナイトが栄えた時代は？", "中生代", "アンモナイトや恐竜は中生代の示準化石です。", ["古生代", "新生代", "先カンブリア時代"]], ["ビカリアやナウマンゾウが生きていた時代は？", "新生代", "新生代の示準化石です。", ["古生代", "中生代", "先カンブリア時代"]],
   ["サンゴの化石が見つかった地層は、当時どんな環境だった？", "あたたかく浅い海", "サンゴは示相化石。あたたかく浅い海だったとわかります。", ["冷たく深い海", "湖", "陸地の森林"]], ["地震が発生した場所の真上の地点は？", "震央"], ["最初に来る小さなゆれは？", "初期微動"], ["初期微動を伝える波は？", "P波"], ["主要動を伝える波は？", "S波"],
-  ["ある地点でのゆれの大きさを表すのは？", "震度"], ["地震そのものの規模を表すのは？", "マグニチュード"], ["うすい塩酸をかけると二酸化炭素が出る堆積岩は？", "石灰岩"], ["火山灰が固まってできた堆積岩は？", "凝灰岩"], ["日本の震度は何段階？", "10段階", "0〜7で、5と6は強・弱に分かれるので10段階です。", ["7段階", "8段階", "12段階"]]]));
+  ["ある地点でのゆれの大きさを表すのは？", "震度"], ["地震そのものの規模を表すのは？", "マグニチュード"], ["うすい塩酸をかけると二酸化炭素が出る堆積岩は？", "石灰岩"], ["火山灰が固まってできた堆積岩は？", "凝灰岩"], ["日本の震度は何段階？", "10段階", "0〜7で、5と6は強・弱に分かれるので10段階です。", ["7段階", "8段階", "12段階"]],
+  ["火山岩で、大きな結晶のまわりの細かい粒の部分は？", "石基"], ["火山岩で、石基の中に見える大きな結晶は？", "斑晶"], ["ねばりけの強いマグマでできる火山の形は？", "ドーム状（おわんをふせた形）", "ねばりけが強いと盛り上がった形になり、激しい噴火になりやすいです。", ["傾斜のゆるやかな形", "円すい形", "平らな台地"]],
+  ["ねばりけの強いマグマからできる火山灰や岩石の色は？", "白っぽい"], ["流れる水のはたらきで、粒の大きさがいちばん小さいものは？", "泥", "粒の大きさは れき＞砂＞泥。小さい泥ほど遠く・深いところに積もります。", ["れき", "砂", "火山灰"]], ["大地が大きな力を受けて、地層が波打つように曲がったものは？", "しゅう曲"],
+  ["大地に力がはたらいてできる、地層のずれは？", "断層"], ["今後も活動して地震を起こす可能性がある断層は？", "活断層"], ["地震で海底の地形が変化して起こる大きな波は？", "津波"], ["地下の浅いところにあるマグマがたまった場所は？", "マグマだまり"]]));
 add("s2-chem", "sci", 2, "化学変化と原子・分子", [pool("化学変化", [["水を電気分解したとき、陰極に出る気体は？", "水素", "陰極に水素、陽極に酸素が 2：1 の体積で出ます。", ["酸素", "二酸化炭素", "塩素"]], ["炭酸水素ナトリウムを加熱すると、炭酸ナトリウム・水と何ができる？", "二酸化炭素"],
   ["鉄と硫黄を加熱するとできる物質は？", "硫化鉄"], ["酸化銀を加熱すると、銀と何に分かれる？", "酸素"], ["物質が酸素と結びつく化学変化は？", "酸化"], ["酸化物から酸素がうばわれる化学変化は？", "還元"], ["熱や光を出しながら激しく酸化することは？", "燃焼"],
   ["化学変化の前後で、全体の質量が変わらない法則は？", "質量保存の法則"], ["まわりから熱をうばう化学変化は？", "吸熱反応"], ["酸化銅と炭素を加熱すると、銅と何ができる？", "二酸化炭素"], ["塩化コバルト紙は水にふれると何色になる？", "赤色（桃色）", "青色の塩化コバルト紙は、水にふれると赤（桃）色になります。", ["青色", "黄色", "白色"]],
@@ -354,7 +378,9 @@ add("s2-bio", "sci", 2, "生物のからだのつくり", pool("生物のから�
   ["胆汁をつくる器官は？", "肝臓", "胆汁は肝臓でつくられ、胆のうにたくわえられます。", ["胆のう", "すい臓", "胃"]], ["小腸の内側にある、表面積を大きくする突起は？", "柔毛"], ["肺の中にある、小さな袋のようなつくりは？", "肺胞"], ["赤血球にふくまれ、酸素を運ぶ物質は？", "ヘモグロビン"],
   ["心臓から送り出される血液が流れる血管は？", "動脈"], ["心臓にもどる血液が流れ、弁がある血管は？", "静脈"], ["アンモニアを尿素に変える器官は？", "肝臓"], ["血液中から尿素などをこし出して尿をつくる器官は？", "じん臓"], ["植物の細胞だけにあり、体を支えるつくりは？", "細胞壁"],
   ["動物と植物の細胞に共通する、染色液によく染まるつくりは？", "核"], ["熱いものにさわって思わず手を引っこめるような反応は？", "反射"], ["目で、光の刺激を受け取る細胞がある膜は？", "網膜"], ["デンプンが分解されて最終的にできる物質は？", "ブドウ糖"],
-  ["タンパク質が分解されて最終的にできる物質は？", "アミノ酸"], ["血液の液体成分で、養分や不要物を運ぶのは？", "血しょう"], ["出血したとき血液を固めるのは？", "血小板"], ["細菌などをとらえるのは？", "白血球"]]));
+  ["タンパク質が分解されて最終的にできる物質は？", "アミノ酸"], ["血液の液体成分で、養分や不要物を運ぶのは？", "血しょう"], ["出血したとき血液を固めるのは？", "血小板"], ["細菌などをとらえるのは？", "白血球"], ["ブドウ糖やアミノ酸を吸収する、小腸のひだの表面の突起は？", "柔毛"], ["柔毛で吸収された脂肪が入る管は？", "リンパ管"], ["酸素の多い血液を何という？", "動脈血"],
+  ["二酸化炭素の多い血液を何という？", "静脈血"], ["肺から心臓へもどる血液が流れる血管は？", "肺静脈", "肺静脈には、酸素を多くふくむ動脈血が流れています。", ["肺動脈", "大動脈", "大静脈"]], ["刺激を受け取る目や耳などの器官は？", "感覚器官"],
+  ["脳や脊髄をまとめて何という？", "中枢神経"], ["骨についている筋肉の両端の、じょうぶなつくりは？", "けん"], ["からだが1つの細胞でできている生物は？", "単細胞生物"], ["細胞が、生きるためのエネルギーを取り出すはたらきは？", "細胞呼吸（細胞による呼吸）"]]));
 add("s2-elec", "sci", 2, "電流とそのはたらき", [
   () => { const r = pick([2, 4, 5, 10, 20, 30]), i = pick([0.5, 1, 2, 3, 0.2]); return numQ("オームの法則", "抵抗 " + r + "Ω に " + i + "A の電流が流れた。電圧は何V？", r * i, [r / i, r + i, r * i * 2], "電圧 ＝ 抵抗 × 電流 ＝ " + r + "×" + i, "V"); },
   () => { const r = pick([2, 4, 5, 10, 20]), v = r * pick([1, 2, 3, 0.5]); return numQ("オームの法則", "抵抗 " + r + "Ω に " + v + "V の電圧を加えた。電流は何A？", v / r, [v * r, r / v, v / r * 10], "電流 ＝ 電圧 ÷ 抵抗 ＝ " + v + "÷" + r, "A"); },
@@ -398,7 +424,10 @@ add("s3-life", "sci", 3, "生命の連続性・自然と人間", pool("遺伝・
   ["AA と aa をかけ合わせた子の遺伝子の組み合わせは？", "すべて Aa"], ["Aa と Aa をかけ合わせた孫で、A の形質と a の形質の数の比は？", "3 : 1", "AA : Aa : aa ＝ 1 : 2 : 1 なので、A の形質（AA と Aa）: a の形質（aa）＝ 3 : 1。", ["1 : 1", "1 : 2 : 1", "2 : 1"]],
   ["Aa と aa をかけ合わせた子で、A の形質と a の形質の比は？", "1 : 1"], ["対になった遺伝子が、別々の生殖細胞に入ること", "分離の法則"], ["親の体の一部から新しい個体ができる、受精をしない生殖は？", "無性生殖"], ["無性生殖でできた子の形質は？", "親と同じ", "無性生殖では、子は親と同じ遺伝子を受けつぎます。", ["親と必ずちがう", "半分だけ同じ", "決まらない"]],
   ["生物どうしの「食べる・食べられる」のつながりは？", "食物連鎖"], ["光合成で有機物をつくる植物は、生態系で何とよばれる？", "生産者"], ["落ち葉や死がいを分解する菌類・細菌類は？", "分解者"], ["生物のからだが、長い時間をかけて世代を重ねて変化することは？", "進化"],
-  ["形やはたらきはちがうが、もとは同じ器官だったと考えられるものは？", "相同器官"], ["始祖鳥は、何類と鳥類の両方の特徴をもつ？", "は虫類"], ["地球温暖化の原因と考えられている、二酸化炭素などの気体は？", "温室効果ガス"], ["石油や石炭など、大昔の生物の死がいからできた燃料は？", "化石燃料"]]));
+  ["形やはたらきはちがうが、もとは同じ器官だったと考えられるものは？", "相同器官"], ["始祖鳥は、何類と鳥類の両方の特徴をもつ？", "は虫類"], ["地球温暖化の原因と考えられている、二酸化炭素などの気体は？", "温室効果ガス"], ["石油や石炭など、大昔の生物の死がいからできた燃料は？", "化石燃料"], ["体細胞分裂で、染色体が見えるようになるのはどこ？", "核の中の染色体", "分裂が始まると、核の中で染色体が太く短くなって見えるようになります。", ["細胞膜", "細胞壁", "葉緑体"]],
+  ["タマネギの根で、細胞分裂がさかんなのは？", "根の先端付近", "根の先端近くの成長点で、細胞分裂がさかんに行われます。", ["根もと", "葉の先", "どこも同じ"]], ["受精卵が細胞分裂をくり返して、親と同じ形になっていく過程は？", "発生"],
+  ["オスとメスの生殖細胞が合体することを何という？", "受精"], ["動物の雌の生殖細胞は？", "卵"], ["被子植物で、花粉から胚珠に向かってのびる管は？", "花粉管"], ["遺伝子を人工的に変える技術は？", "遺伝子組換え"],
+  ["食物連鎖で、上位の生物ほど数はどうなる？", "少なくなる", "生物の数はピラミッドの形になり、上位ほど少なくなります。", ["多くなる", "変わらない", "決まらない"]], ["本来の生息地から人間によって持ちこまれ、定着した生物は？", "外来種"], ["プラスチックが細かくなって海などにただようものは？", "マイクロプラスチック"]]));
 
 /* ===================== 社会 ===================== */
 const PREF = [["北海道","札幌市"],["青森県","青森市"],["岩手県","盛岡市"],["宮城県","仙台市"],["秋田県","秋田市"],["山形県","山形市"],["福島県","福島市"],["茨城県","水戸市"],["栃木県","宇都宮市"],["群馬県","前橋市"],["埼玉県","さいたま市"],["千葉県","千葉市"],["東京都","東京（新宿区）"],["神奈川県","横浜市"],
