@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小テストA版・B版 | クロ先生のAI職員室</title>
+<meta name="description" content="単元を選ぶだけで、となりの席と問題がちがう小テスト（A版・B版）を作って印刷できます。解答つき。登録不要・無料。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --board: #1f4a3c; --chalk: #f3f1e7; --gold: #e8b64c; --red: #d9574a;
+  --paper: #f7f4ea; --card: #fffdf6; --ink: #23302a; --ink-soft: #5b6a62; --line: #e2dccb;
+  --f-chalk: "Klee One", serif; --f-body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--paper); }
+body { color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.7; }
+a { color: var(--board); }
+.top { background: var(--board); color: var(--chalk); padding: 16px; }
+.top .in, main { max-width: 860px; margin: 0 auto; }
+.top a { color: var(--chalk); font-size: 14px; text-decoration: none; }
+.top h1 { font-family: var(--f-chalk); font-weight: 600; font-size: clamp(26px, 5.5vw, 36px); margin: 4px 0 2px; }
+.top p { margin: 0; font-size: 14px; opacity: .9; }
+main { padding: 16px; }
+.panel { background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+.panel h2 { font-size: 15px; margin: 0 0 8px; color: var(--board); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { position: relative; }
+.chip input { position: absolute; opacity: 0; pointer-events: none; }
+.chip span { display: inline-block; border: 2px solid var(--board); color: var(--board); border-radius: 999px; padding: 3px 14px; font-weight: 700; font-size: 14px; cursor: pointer; background: #fff; }
+.chip input:checked + span { background: var(--board); color: var(--chalk); }
+.chip input:focus-visible + span { outline: 3px solid var(--gold); outline-offset: 2px; }
+.units { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+.units label { display: flex; gap: 6px; align-items: center; font-size: 14px; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+.units label small { color: var(--ink-soft); margin-left: auto; }
+.btns { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { font: inherit; font-weight: 700; border-radius: 999px; padding: 8px 20px; border: 2px solid var(--board); background: #fff; color: var(--board); cursor: pointer; }
+.btn.main { background: var(--board); color: var(--chalk); }
+.note { font-size: 13px; color: var(--ink-soft); margin: 6px 0 0; }
+.warn { font-size: 13px; color: var(--red); margin: 6px 0 0; }
+#out { margin-top: 10px; }
+/* 印刷物 */
+.sheet { background: #fff; width: 210mm; max-width: 100%; margin: 0 auto 16px; padding: 10mm 12mm; box-shadow: 0 1px 4px rgba(0,0,0,.15); color: #111; font-family: "Zen Maru Gothic", "Hiragino Sans", sans-serif; }
+.quiz { padding: 2mm 0 4mm; }
+.quiz + .quiz { border-top: 1.5px dashed #999; padding-top: 5mm; margin-top: 1mm; }
+.qh { display: flex; align-items: baseline; gap: 10px; border-bottom: 2px solid #111; padding-bottom: 2px; }
+.qh b.ver { font-size: 15px; border: 2px solid #111; border-radius: 4px; padding: 0 6px; }
+.qh .t { font-size: 17px; font-weight: 700; }
+.qh .u { font-size: 12px; color: #444; }
+.namebar { display: grid; grid-template-columns: 1fr 1fr 2.4fr 1.2fr; border: 1.5px solid #111; border-top: 0; font-size: 12px; }
+.namebar div { border-left: 1px solid #111; padding: 2px 6px; min-height: 9mm; }
+.namebar div:first-child { border-left: 0; }
+ol.qs { list-style: none; margin: 3mm 0 0; padding: 0; }
+ol.qs li { display: grid; grid-template-columns: 8mm 1fr 34mm; gap: 2mm; align-items: start; padding: 1.6mm 0; border-bottom: 1px solid #ddd; font-size: 13.5px; line-height: 1.55; break-inside: avoid; }
+ol.qs li .n { font-weight: 700; }
+ol.qs li .box { border: 1px solid #111; min-height: 8mm; border-radius: 2px; }
+ol.qs li .ch { display: flex; flex-wrap: wrap; gap: .5mm 4mm; margin-top: .3mm; font-size: 12.5px; }
+ol.qs.choice li { grid-template-columns: 8mm 1fr 14mm; }
+.dense ol.qs li { padding: .7mm 0; font-size: 12px; line-height: 1.45; }
+.dense ol.qs li .box { min-height: 6mm; }
+.dense ol.qs li .ch { font-size: 11.5px; }
+.half { height: 134mm; overflow: hidden; }
+.half ol.qs { margin-top: 2mm; }
+.half ol.qs li { padding: .8mm 0; font-size: 12.5px; }
+.half ol.qs li .box { min-height: 7mm; }
+.half .namebar div { min-height: 8mm; }
+.half.tight ol.qs li { padding: .3mm 0; font-size: 11px; line-height: 1.4; }
+.half.tight ol.qs li .box { min-height: 4.6mm; }
+.half.tight ol.qs li .ch { font-size: 10.5px; }
+.key h3 { font-size: 15px; margin: 4mm 0 2mm; }
+.key table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.key th, .key td { border: 1px solid #999; padding: 1mm 2mm; vertical-align: top; text-align: left; }
+.key th { background: #f1f1f1; }
+.key td.a { font-weight: 700; white-space: nowrap; }
+.foot { font-size: 10px; color: #666; text-align: right; margin: 2mm 0 0; }
+@media (max-width: 600px) { .sheet { padding: 6mm; } ol.qs li { grid-template-columns: 7mm 1fr 24mm; } }
+@page { size: A4 portrait; margin: 8mm; }
+@media print {
+  body { background: #fff; }
+  .top, .panel, .noprint, .warn, .kl-beta { display: none !important; }
+  main { padding: 0; max-width: none; }
+  .sheet { box-shadow: none; margin: 0; padding: 0; width: auto; page-break-after: always; break-after: page; }
+  .sheet:last-child { page-break-after: auto; break-after: auto; }
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="in">
+  <a href="../index.html">← クロ先生のAI職員室</a>
+  <h1>小テストA版・B版</h1>
+  <p>単元を選ぶだけで、となりの席と問題がちがう小テストを作ります。解答つき・A4で印刷・登録不要。</p>
+</div></header>
+<main>
+  <section class="panel">
+    <h2>1. 教科と学年</h2>
+    <div class="row" id="subjs"></div>
+    <div class="row" id="grades" style="margin-top:8px"></div>
+  </section>
+  <section class="panel">
+    <h2>2. 単元（いくつでも選べます）</h2>
+    <div class="units" id="units"></div>
+    <p class="note">（ ）の数字は、この単元で作れる問題のおよその数です。</p>
+  </section>
+  <section class="panel">
+    <h2>3. 形式</h2>
+    <div class="row" id="opts"></div>
+    <p class="note">「書いて答える」でも、答えが1つに決まらない問題だけは選択肢をつけます。</p>
+  </section>
+  <div class="btns noprint">
+    <button class="btn main" id="make" type="button">小テストを作る</button>
+    <button class="btn" id="print" type="button" disabled>印刷する</button>
+    <span id="sum" class="note"></span>
+  </div>
+  <p id="warn" class="warn" hidden></p>
+  <div id="out"></div>
+</main>
+<script src="../games/time-attack-data.js"></script>
+<script>
+(function () {
+  const U = window.TA.UNITS, shuffle = window.TA.shuffle;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const SUBJ = [["math", "数学"], ["eng", "英語"], ["sci", "理科"], ["soc", "社会"]];
+  const SOC_GRADE = { 1: "地理", 2: "歴史", 3: "公民" };
+  const KANA = ["ア", "イ", "ウ", "エ"];
+  let state = { subj: "math", grade: 1 };
+  try { const s = JSON.parse(localStorage.getItem("kurolab-kotest-v1") || "null"); if (s && s.subj) state = s; } catch (e) {}
+  const save = () => { try { localStorage.setItem("kurolab-kotest-v1", JSON.stringify(state)); } catch (e) {} };
+
+  // 単元ごとの問題の数（ざっくり）を数えておく
+  const size = {};
+  function countUnit(u) {
+    if (size[u.id]) return size[u.id];
+    const s = new Set(); for (let i = 0; i < 160; i++) s.add(u.gen[i % u.gen.length]().q);
+    return (size[u.id] = s.size);
+  }
+
+  const radio = (name, val, label, on) => `<label class="chip"><input type="radio" name="${name}" value="${val}"${on ? " checked" : ""}><span>${label}</span></label>`;
+  function drawTop() {
+    $("subjs").innerHTML = SUBJ.map(([k, n]) => radio("subj", k, n, state.subj === k)).join("");
+    $("grades").innerHTML = [1, 2, 3].map(g => radio("grade", g, state.subj === "soc" ? SOC_GRADE[g] : "中" + g, +state.grade === g)).join("");
+    const list = U.filter(u => u.subj === state.subj && u.grade === +state.grade);
+    const sel = state.units || [];
+    $("units").innerHTML = list.map(u => `<label><input type="checkbox" name="unit" value="${u.id}"${sel.includes(u.id) ? " checked" : ""}>${esc(u.name)}<small>（${countUnit(u) >= 150 ? "150以上" : countUnit(u)}）</small></label>`).join("");
+    if (!list.some(u => sel.includes(u.id)) && list.length) $("units").querySelector("input").checked = true;
+    document.querySelectorAll("input[name=subj]").forEach(r => r.onchange = () => { state.subj = r.value; state.units = []; save(); drawTop(); });
+    document.querySelectorAll("input[name=grade]").forEach(r => r.onchange = () => { state.grade = +r.value; state.units = []; save(); drawTop(); });
+    document.querySelectorAll("input[name=unit]").forEach(c => c.onchange = () => { state.units = [...document.querySelectorAll("input[name=unit]:checked")].map(x => x.value); save(); });
+  }
+  const opt = Object.assign({ n: 10, fmt: "write", ver: "ab", lay: "two", title: "小テスト" }, state.opt || {});
+  if (opt.fmt === "auto") opt.fmt = "write";
+  function drawOpts() {
+    $("opts").innerHTML = `
+      <div class="row" style="width:100%"><b style="font-size:14px;align-self:center">問題数</b>${[5, 10, 15, 20].map(n => radio("n", n, n + "問", opt.n === n)).join("")}</div>
+      <div class="row" style="width:100%"><b style="font-size:14px;align-self:center">答え方</b>${radio("fmt", "write", "書いて答える", opt.fmt === "write")}${radio("fmt", "choice", "4択", opt.fmt === "choice")}</div>
+      <div class="row" style="width:100%"><b style="font-size:14px;align-self:center">版</b>${radio("ver", "ab", "A版・B版", opt.ver === "ab")}${radio("ver", "a", "1種類だけ", opt.ver === "a")}</div>
+      <div class="row" style="width:100%"><b style="font-size:14px;align-self:center">印刷</b>${radio("lay", "two", "A4の上下に2枚（切って配る）", opt.lay === "two")}${radio("lay", "one", "A4に1枚", opt.lay === "one")}</div>
+      <label style="font-size:14px;width:100%">タイトル <input id="title" value="${esc(opt.title)}" style="font:inherit;padding:2px 8px;border:1px solid var(--line);border-radius:6px;width:min(320px,70%)"></label>`;
+    $("opts").querySelectorAll("input[type=radio]").forEach(r => r.onchange = () => { opt[r.name] = r.name === "n" ? +r.value : r.value; state.opt = opt; save(); });
+    $("title").oninput = e => { opt.title = e.target.value; state.opt = opt; save(); };
+  }
+
+  // 書いて答えると答えが1つに決まらない問題には選択肢をつける
+  const needChoice = q => /選ぶ|もつ（行う）もの|どれ？|あてはまるもの/.test(q.q);
+
+  function makeSet(units, n, nVer) {
+    const need = n * nVer, seen = new Set(), items = [];
+    let tries = 0, short = false;
+    // 単元を順番に回して、どの単元からもまんべんなく出す
+    while (items.length < need && tries < need * 60) {
+      const u = units[items.length % units.length];
+      const q = u.gen[Math.floor(Math.random() * u.gen.length)]();
+      tries++;
+      if (seen.has(q.q)) continue;
+      seen.add(q.q); items.push({ u, q });
+    }
+    if (items.length < need) { // 足りないときは、版の中だけで重ならないように補う
+      short = true;
+      while (items.length < need) { const u = units[items.length % units.length]; items.push({ u, q: u.gen[Math.floor(Math.random() * u.gen.length)]() }); }
+    }
+    const vers = [];
+    for (let v = 0; v < nVer; v++) {
+      const part = items.slice(v * n, (v + 1) * n);
+      // 単元がまざるときは、版の中で順番をならべかえる
+      vers.push(units.length > 1 ? shuffle(part) : part);
+    }
+    return { vers, short };
+  }
+
+  function quizHtml(T, v, compact) {
+    const lis = T.vers[v].map((it, i) => {
+      const ch = it.choice ? `<div class="ch">${it.opts.map((o, k) => `<span>${KANA[k]}　${esc(o)}</span>`).join("")}</div>` : "";
+      return `<li><span class="n">(${i + 1})</span><div>${esc(it.q.q)}${ch}</div><div class="box" aria-label="解答らん"></div></li>`;
+    }).join("");
+    return `<section class="quiz${compact ? " half" + (T.n > 10 ? " tight" : "") : T.n >= 15 ? " dense" : ""}">
+      <div class="qh">${T.nVer > 1 ? `<b class="ver">${"AB"[v]}</b>` : ""}<span class="t">${esc(T.title)}</span><span class="u">${esc(T.unitNames)}</span></div>
+      <div class="namebar"><div>年　組</div><div>番</div><div>名前</div><div>　　／${T.n}</div></div>
+      <ol class="qs${T.vers[v].every(it => it.choice) ? " choice" : ""}">${lis}</ol></section>`;
+  }
+  function keyHtml(T) {
+    const rows = i => T.vers.map(V => V[i]);
+    const head = `<tr><th>番号</th>${T.vers.map((_, v) => `<th>${T.nVer > 1 ? "AB"[v] + "版の答え" : "答え"}</th>`).join("")}</tr>`;
+    let body = "";
+    for (let i = 0; i < T.n; i++) body += `<tr><td>(${i + 1})</td>${rows(i).map(it => `<td><span class="a">${it.choice ? KANA[it.opts.indexOf(it.q.ans)] + "　" : ""}${esc(it.q.ans)}</span>${it.q.ex ? `<br><small>${esc(it.q.ex)}</small>` : ""}</td>`).join("")}</tr>`;
+    return `<article class="sheet key"><div class="qh"><span class="t">${esc(T.title)}　解答・解説</span><span class="u">${esc(T.unitNames)}</span></div><table>${head}${body}</table><p class="foot">クロ先生のAI職員室　小テストA版・B版（β版）</p></article>`;
+  }
+
+  function make() {
+    const ids = [...document.querySelectorAll("input[name=unit]:checked")].map(x => x.value);
+    if (!ids.length) { $("warn").hidden = false; $("warn").textContent = "単元を1つ以上選んでください。"; return; }
+    const units = U.filter(u => ids.includes(u.id));
+    const nVer = opt.ver === "ab" ? 2 : 1;
+    const { vers, short } = makeSet(units, opt.n, nVer);
+    const T = { n: opt.n, nVer, title: opt.title || "小テスト", unitNames: units.map(u => u.name).join("・"), vers: [] };
+    T.vers = vers.map(V => V.map(({ u, q }) => {
+      const choice = opt.fmt === "choice" || needChoice(q);
+      return { q, choice, opts: choice ? shuffle(q.opts) : null };
+    }));
+    let html = "";
+    const compact = opt.lay === "two";
+    for (let v = 0; v < nVer; v++) {
+      html += opt.lay === "two" ? `<article class="sheet">${quizHtml(T, v, compact)}${quizHtml(T, v, compact)}<p class="foot">クロ先生のAI職員室　小テストA版・B版（β版）</p></article>`
+                              : `<article class="sheet">${quizHtml(T, v, false)}<p class="foot">クロ先生のAI職員室　小テストA版・B版（β版）</p></article>`;
+    }
+    html += keyHtml(T);
+    $("out").innerHTML = html;
+    // 上下2枚に入りきらないときは、A4に1枚ずつに切りかえる
+    let fell = false;
+    if (opt.lay === "two" && [...document.querySelectorAll(".half")].some(q => q.scrollHeight > q.clientHeight + 2)) {
+      fell = true; html = "";
+      for (let v = 0; v < nVer; v++) html += `<article class="sheet">${quizHtml(T, v, false)}<p class="foot">クロ先生のAI職員室　小テストA版・B版（β版）</p></article>`;
+      $("out").innerHTML = html + keyHtml(T);
+    }
+    $("print").disabled = false;
+    $("warn").hidden = !short;
+    if (short) $("warn").textContent = "選んだ単元は問題が少ないため、A版とB版で同じ問題が少し入っています。単元を増やすか、問題数を減らすと別々になります。";
+    $("sum").textContent = `${T.unitNames}　${T.n}問 × ${nVer === 2 ? "A版・B版" : "1種類"}　（もう一度押すと別の問題になります）`;
+    // 上下2枚で20問はA4に入りにくいので案内
+    if (fell) { $("warn").hidden = false; $("warn").textContent = (short ? $("warn").textContent + " " : "") + "問題が長いので、上下2枚に入りきりませんでした。A4に1枚ずつで作っています。"; }
+  }
+
+  drawTop(); drawOpts();
+  $("make").onclick = make;
+  $("print").onclick = () => window.print();
+})();
+</script>
+<script src="../assets/beta.js"></script>
+</body>
+</html>
